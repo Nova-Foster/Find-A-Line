@@ -26,7 +26,7 @@ NIST_Data = pd.read_csv("Lines.csv")
 def compare(Observed,margin=0.5,source="all"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
   source=source.lower()
 #Select all wavelength from NIST that fit the range
-  lines = NIST_Data[NIST_Data['obs_wl_air(nm)'].between(int(Observed)-int(margin),int(Observed)+int(margin))]
+  lines = NIST_Data[NIST_Data['obs_wl_air(nm)'].between(float(Observed)-float(margin),float(Observed)+float(margin))]
 
 #Select the soures from that range
   #Main Air: H, He, Ar, N, O
