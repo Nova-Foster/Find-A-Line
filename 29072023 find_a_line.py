@@ -15,7 +15,6 @@ Created by Nova Foster (They/Them) 26/07/2023
 '''
 
 NIST_Data = pd.read_csv("Lines.csv")
-NIST_Data
 
 def compare(Observed,margin=0.5,source="All"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
 
@@ -35,4 +34,3 @@ def compare(Observed,margin=0.5,source="All"):                    #Compare obser
   return lines
 
 print(compare(712.219,5,"Main Air"))
-
