@@ -5,6 +5,7 @@ Created by Nova Foster (They/Them) 26/07/2023
 import pandas as pd                                               #Use pandas to read csv file
 
 '''
+NIST Value credit: Kramida, A., Ralchenko, Yu., Reader, J., and NIST ASD Team (2022). NIST Atomic Spectra Database (ver. 5.10), [Online]. Available: https://physics.nist.gov/asd [2023, July 29]. National Institute of Standards and Technology, Gaithersburg, MD. DOI: https://doi.org/10.18434/T4W30F
 NIST File contains:
 - Element
 - Spectral Number
