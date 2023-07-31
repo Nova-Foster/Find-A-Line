@@ -14,8 +14,8 @@ NIST File contains:
 - Intensity
 - Probability in terms of 10^8 s^-1 (closer to 1 is more likely)
 - Accuracy
-- Initial energy(?)
-- Final energy (?)
+- Initial energy
+- Final energy
 - Type (mostly NA)
 - TP Reference
 - Line Reference
