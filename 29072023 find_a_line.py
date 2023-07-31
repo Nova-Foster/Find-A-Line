@@ -21,7 +21,7 @@ NIST File contains:
 - Line Reference
 '''
 NIST_Data = pd.read_csv("Lines.csv")
-
+NIST_Data[""]
 
 def compare(Observed,margin=0.5,source="all"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
   source=source.lower()
