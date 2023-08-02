@@ -14,13 +14,15 @@ NIST File contains:
 - Intensity
 - Probability in terms of 10^8 s^-1 (closer to 1 is more likely)
 - Accuracy
-- Initial energy
-- Final energy
+- Initial energy (eV)
+- Final energy (eV)
+- Statistical weighting of intial state
+- Statisitcal weighting of excited state
 - Type (mostly NA)
 - TP Reference
 - Line Reference
 '''
-NIST_Data = pd.read_csv("Lines_eV2.csv")
+NIST_Data = pd.read_csv("Lines_eV.csv")
 
 def compare(Observed,margin=0.5,source="all"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
   source=source.lower()
@@ -39,9 +41,52 @@ def compare(Observed,margin=0.5,source="all"):                    #Compare obser
 
   return lines
 
+def temp_using_2line(matched,intensity):
+  '''
+  Todo:
+  - Add actual function
+  - Comment
+  - Check that it works using values in paper
+  '''
+  import numpy as np
+  Boltzmann = 8.617333262e-5
+
+#Select values for each of the two lines and assign them to a new structure
+  line1 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[0]]
+  line2 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[1]]
+
+ 
+#Select values using iloc[0][THING] to select single values
+  prefactor = (float(line2.iloc[0]['Ek(eV)']) - float(line1.iloc[0]['Ek(eV)'])) /Boltzmann
+  numerator = intensity[0]*line1.iloc[0]['obs_wl_air(nm)']*line2.iloc[0]['Aki(10^8 s^-1)']*line2.iloc[0]['g_k']
+  denomonator = intensity[1]*line2.iloc[0]['obs_wl_air(nm)']*line1.iloc[0]['Aki(10^8 s^-1)']*line1.iloc[0]['g_k']
+
+  print(line2 )
+
+
+  Temp = prefactor * np.log(numerator/denomonator)**(-1)
+
+  return Temp
+
+
+def boltz_fit():
+  '''
+  Todo:
+  - Get lines selected
+  - Look at paper to see relation
+  - Curvefit a BZ distr. to those lines
+  - Estimate temperature
+
+  '''
+  return Temp
+
+print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
+
+'''
 print("Please enter the observed wavelength(nm), margin to search (observed +-) and lines to check (Main Air, All Air or all)")
 observed = input()
 margin = input()
 source = input()
 
 print( compare(observed, margin, source) )
+'''
