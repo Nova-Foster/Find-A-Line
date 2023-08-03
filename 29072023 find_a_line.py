@@ -80,13 +80,14 @@ def boltz_fit():
   '''
   return Temp
 
+'''
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
 
 '''
-print("Please enter the observed wavelength(nm), margin to search (observed +-) and lines to check (Main Air, All Air or all)")
-observed = input()
-margin = input()
-source = input()
+while True:
+  print("Please enter the observed wavelength(nm), margin to search (observed +-) and lines to check (Main Air, All Air or all)")
+  observed = input()
+  margin = input()
+  source = input()
 
-print( compare(observed, margin, source) )
-'''
+  print( compare(observed, margin, source) )
