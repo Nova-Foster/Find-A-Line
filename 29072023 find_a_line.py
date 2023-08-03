@@ -69,7 +69,7 @@ def temp_using_2line(matched,intensity):
   return Temp
 
 
-def boltz_fit():
+def boltz_line():
   '''
   Todo:
   - Get lines selected
