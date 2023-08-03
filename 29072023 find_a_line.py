@@ -69,7 +69,9 @@ def temp_using_2line(matched,intensity):
   return Temp
 
 
-def boltz_fit():
+def boltz_line(matched,intensity):
+  import matplotlib.pyplot as py
+  import numpy as np
   '''
   Todo:
   - Get lines selected
@@ -78,7 +80,19 @@ def boltz_fit():
   - Estimate temperature
 
   '''
+  #Load values for matched lines into seperate array for easier handling
+  lines = np.zeros(len(matched))
+  for i in matched:
+    lines[i] = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[i]]
+
+  y_values = 
+  py.plot(lines.iloc['Ek (eV)'],)
+
   return Temp
+
+
+
+
 
 '''
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
