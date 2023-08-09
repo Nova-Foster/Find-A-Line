@@ -3,6 +3,7 @@ Created by Nova Foster (They/Them) 26/07/2023
 '''
 
 import pandas as pd                                               #Use pandas to read csv file
+Boltzmann = 8.617333262e-5
 
 '''
 NIST Values reference: Kramida, A., Ralchenko, Yu., Reader, J., and NIST ASD Team (2022). NIST Atomic Spectra Database (ver. 5.10), [Online]. Available: https://physics.nist.gov/asd [2023, July 29]. National Institute of Standards and Technology, Gaithersburg, MD. DOI: https://doi.org/10.18434/T4W30F
@@ -55,7 +56,6 @@ def temp_using_2line(matched,intensity):
   - Loop so each pair of lines is used (If the elements match)
   '''
   import numpy as np
-  Boltzmann = 8.617333262e-5
 
  #Select values for each of the two lines and assign them to a new structure. iloc to get them as numerical values not data frames
   line1 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[0]].iloc[0]
@@ -79,44 +79,36 @@ def boltz_line(matched,intensity):
   import numpy as np
   from scipy.optimize import curve_fit
 
-  Temp=-1
   #Load values for matched lines into seperate array for easier handling
   lines = NIST_Data[NIST_Data["obs_wl_air(nm)"].isin(matched)]
 
-  #Calculate x and y values for the plot & plot them
-  x_data = lines.iloc[:]['Ek(eV)']
-  y_data = np.log( (intensity*lines.iloc[:]['obs_wl_air(nm)'])/(lines.iloc[:]['g_k']*lines.iloc[:]['Aki(10^8 s^-1)']))
+  #Calculate x and y values for the plot
+  x_data = lines['Ek(eV)']
+  y_data = np.log( (intensity*lines['obs_wl_air(nm)'])/(lines['g_k']*lines['Aki(10^8 s^-1)']))
 
   #Format the data
   x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
   x_data = np.asarray(x_data,dtype=float)   #Convert the two to numpy arrays as floats
   y_data = np.asarray(y_data,dtype=float)
-  py.plot(x_data,y_data,".")
+  py.plot(x_data,y_data,".",label="Data")
 
   
   #Fit a line to x and y data. Converting to numpy arrays as pandas can't be used
   #Pop[0] is gradient of line, pop[1] is y intercept
   #pcov covaraince so np.sqrt(pcov.diagonal()[:]) is uncertainty
   pop, pcov = curve_fit(line,x_data,y_data)
-  print(pop)
-  print(np.sqrt(pcov.diagonal()[:]))
-
 
   #Plot the fit
-  x_min = np.min(x_data)
-  x_max = np.max(x_data)
+  x_range = np.linspace(np.min(x_data), np.max(x_data), 1000)
+  py.plot(x_range, line(x_range, pop[0], pop[1]), "r-", label="Fit")
 
-  x_range = np.linspace(float(x_min),float(x_max),1000)
-  y_fit_vals = line(x_range,pop[0],pop[1])
-  py.plot(x_range,y_fit_vals,"r-")
+  py.legend()
   py.show()
 
 
   # Calculate temperature from the slope
-  k = 8.617333262145 * 10**-5  # Boltzmann constant in eV/K
-  slope = pop[0]
-  weighted_avg_energy_diff = -1 * slope  # Negative because of the formula
-  Temp = -weighted_avg_energy_diff / (k * slope)
+  Temp = (-1/pop[0])/Boltzmann
+
 
   return Temp
 
