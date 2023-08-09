@@ -71,14 +71,49 @@ def temp_using_2line(matched,intensity):
 
   return Temp
 
+def line(x,m,c):   #Line function used for curve_fit in bolt_line
+  return m*x+c
 
-<<<<<<<<< Temporary merge branch 1
-def boltz_line():
-=========
 def boltz_line(matched,intensity):
   import matplotlib.pyplot as py
   import numpy as np
->>>>>>>>> Temporary merge branch 2
+  from scipy.optimize import curve_fit
+
+  #Load values for matched lines into seperate array for easier handling
+  lines = NIST_Data[NIST_Data["obs_wl_air(nm)"].isin(matched)]
+
+  #Calculate x and y values for the plot
+  x_data = lines['Ek(eV)']
+  y_data = np.log( (intensity*lines['obs_wl_air(nm)'])/(lines['g_k']*lines['Aki(10^8 s^-1)']))
+
+  #Format the data
+  x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
+  x_data = np.asarray(x_data,dtype=float)   #Convert the two to numpy arrays as floats
+  y_data = np.asarray(y_data,dtype=float)
+  py.plot(x_data,y_data,".",label="Data")
+
+  
+  #Fit a line to x and y data. Converting to numpy arrays as pandas can't be used
+  #Pop[0] is gradient of line, pop[1] is y intercept
+  #pcov covaraince so np.sqrt(pcov.diagonal()[:]) is uncertainty
+  pop, pcov = curve_fit(line,x_data,y_data)
+
+  #Plot the fit
+  x_range = np.linspace(np.min(x_data), np.max(x_data), 1000)
+  py.plot(x_range, line(x_range, pop[0], pop[1]), "r-", label="Fit")
+
+  py.legend()
+  py.show()
+
+
+  # Calculate temperature from the slope
+  Temp = (-1/pop[0])/Boltzmann
+
+
+  return Temp
+
+
+def boltz_fit(matched,intensity):
   '''
   TODO:
   - Implement this using curvefit
