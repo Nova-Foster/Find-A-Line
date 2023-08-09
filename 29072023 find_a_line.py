@@ -71,30 +71,57 @@ def temp_using_2line(matched,intensity):
 
   return Temp
 
+def line(x,m,c):   #Line function used for curve_fit in bolt_line
+  return m*x+c
 
 def boltz_line(matched,intensity):
   import matplotlib.pyplot as py
   import numpy as np
-  '''
-  TODO:
-  - Get lines selected
-  - Look at paper to see relation
-  - Apply Boltzmann line method
-  - Estimate temperature
+  from scipy.optimize import curve_fit
 
-  '''
+  Temp=-1
   #Load values for matched lines into seperate array for easier handling
-  lines = np.zeros(len(matched))
-  for i in matched:
-    lines[i] = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[i]]
+  lines = NIST_Data[NIST_Data["obs_wl_air(nm)"].isin(matched)]
 
- 
-  py.plot(lines.iloc['Ek (eV)'],)
+  #Calculate x and y values for the plot & plot them
+  x_data = lines.iloc[:]['Ek(eV)']
+  y_data = np.log( (intensity*lines.iloc[:]['obs_wl_air(nm)'])/(lines.iloc[:]['g_k']*lines.iloc[:]['Aki(10^8 s^-1)']))
+
+  #Format the data
+  x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
+  x_data = np.asarray(x_data,dtype=float)   #Convert the two to numpy arrays as floats
+  y_data = np.asarray(y_data,dtype=float)
+  py.plot(x_data,y_data,".")
+
+  
+  #Fit a line to x and y data. Converting to numpy arrays as pandas can't be used
+  #Pop[0] is gradient of line, pop[1] is y intercept
+  #pcov covaraince so np.sqrt(pcov.diagonal()[:]) is uncertainty
+  pop, pcov = curve_fit(line,x_data,y_data)
+  print(pop)
+  print(np.sqrt(pcov.diagonal()[:]))
+
+
+  #Plot the fit
+  x_min = np.min(x_data)
+  x_max = np.max(x_data)
+
+  x_range = np.linspace(float(x_min),float(x_max),1000)
+  y_fit_vals = line(x_range,pop[0],pop[1])
+  py.plot(x_range,y_fit_vals,"r-")
+  py.show()
+
+
+  # Calculate temperature from the slope
+  k = 8.617333262145 * 10**-5  # Boltzmann constant in eV/K
+  slope = pop[0]
+  weighted_avg_energy_diff = -1 * slope  # Negative because of the formula
+  Temp = -weighted_avg_energy_diff / (k * slope)
 
   return Temp
 
 
-def bolt_fit(matched,intensity):
+def boltz_fit(matched,intensity):
   '''
   TODO:
   - Implement this using curvefit
@@ -104,10 +131,19 @@ def bolt_fit(matched,intensity):
 
   return Temp
 
+import numpy as np
+lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
+intens = np.array([800,800,1500,2000,1650,2500,1650])
+intens = intens / 2500
 
 
+print(intens)
+
+print(boltz_line(lambdas,intens))
+
+'''
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
-
+'''
 '''
 while True:
   print("Please enter the observed wavelength(nm), margin to search (observed +-) and lines to check (Main Air, All Air or all)")
