@@ -41,12 +41,11 @@ def compare(Observed,margin=0.5,source="all"):                    #Compare obser
 
   return lines
 
+
 def temp_using_2line(matched,intensity):
   '''
-  Todo:
-  - Add actual function
-  - Comment
-  - Check that it works using values in paper
+  TODO:
+  - Loop so each pair of lines is used (If the elements match)
   '''
   import numpy as np
   Boltzmann = 8.617333262e-5
@@ -55,15 +54,12 @@ def temp_using_2line(matched,intensity):
   line1 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[0]]
   line2 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[1]]
 
- 
 #Select values using iloc[0][THING] to select single values
   prefactor = (float(line2.iloc[0]['Ek(eV)']) - float(line1.iloc[0]['Ek(eV)'])) /Boltzmann
   numerator = intensity[0]*line1.iloc[0]['obs_wl_air(nm)']*line2.iloc[0]['Aki(10^8 s^-1)']*line2.iloc[0]['g_k']
   denomonator = intensity[1]*line2.iloc[0]['obs_wl_air(nm)']*line1.iloc[0]['Aki(10^8 s^-1)']*line1.iloc[0]['g_k']
 
-  print(line2 )
-
-
+#Calculate temperature using the equation
   Temp = prefactor * np.log(numerator/denomonator)**(-1)
 
   return Temp
@@ -71,14 +67,26 @@ def temp_using_2line(matched,intensity):
 
 def boltz_line():
   '''
-  Todo:
+  TODO:
   - Get lines selected
   - Look at paper to see relation
-  - Curvefit a BZ distr. to those lines
+  - Apply Boltzmann line method
   - Estimate temperature
 
   '''
+  #Load values for matched lines into seperate array for easier handling
+  lines = np.zeros(len(matched))
+  for i in matched:
+    lines[i] = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[i]]
+
+ 
+  py.plot(lines.iloc['Ek (eV)'],)
+
   return Temp
+
+
+
+
 
 '''
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
