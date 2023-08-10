@@ -1,0 +1,8 @@
+Center: Lowest Wavelength - Highest Wavelength, number of lines used
+(Based on what the calibrated axis will show, it may not actually get all of those wavelengths)
+
+Range should be about 300nm  
+300nm: 146 - 514, 17
+500nm: 345 - 713, 24
+700nm: 549 - 948, 16
+900nm: 747 - 1307, 5

@@ -1,0 +1,52 @@
+[Calibration Setup]
+CalibX_Type=Multi-Linear
+CalibX_Unit=nm
+CalibX_Coord_0=414
+CalibX_Value_0=253.652000
+CalibX_Coord_1=843
+CalibX_Value_1=365.015000
+CalibX_Coord_2=996
+CalibX_Value_2=404.656000
+CalibX_Coord_3=1010
+CalibX_Value_3=407.783000
+CalibX_Coord_4=1113
+CalibX_Value_4=435.833000
+CalibX_Coord_5=1170
+CalibX_Value_5=452.186000
+CalibX_Coord_6=1215
+CalibX_Value_6=462.420000
+CalibX_Coord_7=1234
+CalibX_Value_7=469.804000
+CalibX_Coord_8=1256
+CalibX_Value_8=473.415000
+CalibX_Coord_9=1284
+CalibX_Value_9=479.262000
+CalibX_Coord_10=1293
+CalibX_Value_10=480.702000
+CalibX_Coord_11=1328
+CalibX_Value_11=491.651000
+CalibY_Type=Linear
+CalibY_Unit=ms
+CalibY_Pixel=0
+CalibY_Value=0.000000
+CalibY_Slope=0.006707
+[ROI]
+Top=0
+Left=0
+Bottom=1039
+Right=1391
+Type=0
+[Parameters]
+Image Contrast=31
+Image Comment=
+[Sweep Unit Setup]
+UnitID_1=6181
+UnitID_2=-1
+SpeedUnit_1=500us/mm
+SpeedUnit_2=-1
+[Geometrical Correction]
+StaticDistortionCorrected=1
+NonLinearityCorrected=1
+TransitTimeVaritationCorrected=0
+HorizontalDisplayPixelSize=0.000000000
+VerticalDisplayPixelSize=0.000000000

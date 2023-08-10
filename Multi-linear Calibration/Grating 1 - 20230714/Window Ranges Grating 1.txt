@@ -1,0 +1,26 @@
+Center: Lowest Wavelength-Highest Wavelength
+(Based on what the calibrated axis will show, it may not actually get all of those wavelengths)
+
+Range should be about 50nm
+
+400nm: 374 - 434, 5
+425nm: 395 - 549, 12
+450nm: 424 - 484, 18
+475nm: 449 - 506, 13
+500nm: 474 - 535, 5
+525nm: 498 - 559, 3
+550nm: 524 - 584, 5
+575nm: 548 - 609, 6
+600nm: 574 - 635, 3
+625nm: x
+650nm: x
+675nm: 648 - 709, 2
+700nm: 674 - 730, 3
+725nm: 696 - 759, 3
+750nm: 719 - 783, 9
+775nm: 749 - 792, 9
+800nm: 782 - 833, 9
+825nm: 773 - 859, 9
+850nm: 823 - 877, 4
+875nm: x
+900nm: x

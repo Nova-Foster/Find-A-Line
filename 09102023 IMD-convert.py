@@ -23,3 +23,10 @@ data_2d_array = np.stack(rows,axis=0)                                      #Stac
 py.imshow(data_2d_array,interpolation="nearest",origin="lower")
 py.colorbar()
 py.show()
+
+
+
+#Horizontal profile
+hori = np.sum(data_2d_array,axis=0)
+py.plot(np.arange(0,len(hori),1),hori)
+py.show()
