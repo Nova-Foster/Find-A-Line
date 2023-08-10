@@ -84,7 +84,7 @@ def boltz_line(matched,intensity):
 
   #Calculate x and y values for the plot
   x_data = lines['Ek(eV)']
-  y_data = np.log( (intensity*lines['obs_wl_air(nm)'])/(lines['g_k']*lines['Aki(10^8 s^-1)']))
+  y_data = np.log( (intensity*(lines['obs_wl_air(nm)']*1e-9))/(lines['g_k']*(lines['Aki(10^8 s^-1)']*1e8)))
 
   #Format the data
   x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
@@ -124,8 +124,8 @@ def boltz_fit(matched,intensity):
   return Temp
 
 import numpy as np
-lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
-intens = np.array([800,800,1500,2000,1650,2500,1650])
+lambdas = [510.5541,515.3235,521.8202,529.2517]
+intens = np.array([1500,2000,2500,1650])
 intens = intens / 2500
 
 
