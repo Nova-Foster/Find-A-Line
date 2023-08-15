@@ -122,8 +122,7 @@ def boltz_fit(matched,intensity):
 
   return Temp
 
-
-def convert_imd(file_name):
+def convert_imd(file_name):                #Create 2d array from imd: 1392 columns of wavelength & 1040 rows for time
   with open(file_name, "rb") as file:      #Open the file reading as non-text
     if file:
         #Read first 2 bytes, least important byte first, covert to int from hex
@@ -144,21 +143,73 @@ def convert_imd(file_name):
 
   return data_2d_array
 
-def spark_plot(data_2d, wavelengths=0):
-  rotated = np.rot90(data_2d)
+def cont_wavelengths(calibration):         #Determine the wavelength value for each pixel based on the calibration file
+#Working based on calibration being 2d array: 0 = pixel, 1 = wavelength
+
+  #Find wavelength values per pixel between calibration point 1 and 2
+  known_points = np.size(calibration,1)
+  wavelength_whole = np.zeros(known_points)
+
+  current_wavelength = calibration[1][0]
+  next_wavelength = calibration[1][1]
+  pixel_distance = int(calibration[0][1] - calibration[0][0])
+
+  #Find linearity between first two measurements
+  temp_scale = np.linspace(current_wavelength,next_wavelength,pixel_distance)  
+
+  #Apply to pixel before first measurement: assumes same lineraity as between point 1 and 2
+  wavelength_change = temp_scale[1] - temp_scale[0]
+  start_val = current_wavelength - (wavelength_change*calibration[0][0])
+  start_scale = np.linspace(start_val,current_wavelength,int(calibration[0][0]))
+
+  #Create array to be output: currently has wavelength values from pixel 0 to calibration pixel 2
+  wavelength_whole = np.append(start_scale,temp_scale)
+
+  #Loop for each calibration value
+  for i in range(known_points):
+    try:                                                                                   #In a try statement as it will try to access an index past the limit
+      current_wavelength = calibration[1][i+1]                                             #Current wavelength is +1 as first calibration value has already been used
+      next_wavelength = calibration[1][i+2]
+      pixel_distance = calibration[0][i+2] - calibration[0][i+1]                           #Find distance in pixels between the two to be checked
+      temp_scale = np.linspace(current_wavelength,next_wavelength,int(pixel_distance))     #Create the region for current wavelength to next
+
+      wavelength_whole = np.append(wavelength_whole,temp_scale)                            #Append that to what has already been done
+    except:
+      break                                                                                #Exit the for loop, should be at the last calibrated value                                       
+
+  #Continue the scale for last value to the final pixel
+  wavelength_change = wavelength_whole[-1] - wavelength_whole[-2]                          #Amount of wavelength per pixel
+  end_val = next_wavelength + (wavelength_change*(1392-calibration[0][-1]))                       #Final value of the scale
+  end_scale = np.linspace(calibration[1][-1],end_val,1392-int(calibration[0][-1]))       #Create scale between final calibration and the end
+  wavelength_whole = np.append(wavelength_whole,end_scale)                                 #Append to pre-existing scale
+  
+
+  return wavelength_whole
+
+def add_calibration(data,wavelengths=0,time=0):
+  data = np.rot90(data)
+  if wavelengths.any() !=0:
+    values = np.vstack([wavelengths,data])
+
+
+  return values
+
+def spark_plot(data_2d):
+  data = data_2d[1:,:]
+  wavelengths = data_2d[0]
   #Colour plot of whole image
-  py.imshow(rotated,interpolation="nearest",origin="lower")
+  py.imshow(data_2d,interpolation="nearest",origin="lower")
   py.colorbar()
   py.show()
 
 
   #Horizontal profile
-  hori = np.sum(rotated,axis=0)
-  py.plot(np.arange(0,len(hori),1),hori)
+  hori = np.sum(data,axis=0)
+  py.plot(wavelengths,hori,".")
   py.show()
 
   #Verticle profile
-  vert = np.sum(rotated,axis=1)
+  vert = np.sum(data,axis=1)
   py.plot(np.arange(0,len(vert),1),vert)
   py.show()
   return
@@ -209,11 +260,17 @@ def plot_3d(intensity, wavelength=0, time=0):
 
 
 
+test = np.array([[414,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
+cont_test = cont_wavelengths(test)
+print(cont_test[0])
+print(cont_test[-1])
 
 
-data = convert_imd( "800V - 250Hz - 500usmm - 15um vertical.imd")
-spark_plot(data)
+data = convert_imd( "this one.imd")
+values = add_calibration(data,cont_test)
+spark_plot(values)
 plot_3d(data)
+
 '''
 spark_plot( data )
 auto_peaks( data )
@@ -247,7 +304,7 @@ TODO
 - BB plot
 - Make boltz line work
 - add axis for time and wavelength into the 2d array
-- 3d plot across whole thing
+# 3d plot across whole thing
 - image for each wavelength across image with relative intensities
 - stitch the two images together
 - Make autopeaks record intensity and wavelength
