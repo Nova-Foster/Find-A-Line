@@ -141,7 +141,7 @@ def convert_imd(file_name):                #Create 2d array from imd: 1392 colum
   rows = np.split(fdata,1040,axis=0)                                         #Split the data into each 1040 pixel row
   data_2d_array = np.stack(rows,axis=1)                                      #Stack each row on top of eachother
 
-  return data_2d_array
+  return np.rot90(data_2d_array)
 
 def cont_wavelengths(calibration):         #Determine the wavelength value for each pixel based on the calibration file
 #Working based on calibration being 2d array: 0 = pixel, 1 = wavelength
@@ -184,21 +184,30 @@ def cont_wavelengths(calibration):         #Determine the wavelength value for e
   wavelength_whole = np.append(wavelength_whole,end_scale)                                 #Append to pre-existing scale
   
 
+  py.plot(np.linspace(0,1391,1392),wavelength_whole,lw=1)
+  py.xlabel("Pixel")
+  py.ylabel("Wavelength(nm)")
+  py.show()
   return wavelength_whole
 
 def add_calibration(data,wavelengths=0,time=0):
-  data = np.rot90(data)
   if wavelengths.any() !=0:
     values = np.vstack([wavelengths,data])
-
-
   return values
+
+def background_subtraction(data,center=0,grating=0):
+  back_ground = convert_imd("20230810 Full sweep grating 3\Sequence test 1\center 300 Dark.imd")
+  subtracted = data - back_ground
+  return subtracted
+
 
 def spark_plot(data_2d):
   data = data_2d[1:,:]
   wavelengths = data_2d[0]
   #Colour plot of whole image
-  py.imshow(data_2d,interpolation="nearest",origin="lower")
+  py.imshow(data,interpolation="nearest",origin="lower")
+  py.xlabel("x pixel")
+  py.ylabel("y pixel")
   py.colorbar()
   py.show()
 
@@ -247,29 +256,33 @@ def plot_3d(intensity, wavelength=0, time=0):
   if time==0:
     time = np.arange(0,1040,1)
 '''
-
-  x_coords = np.arange(data.shape[1])
-  y_coords = np.arange(data.shape[0])
+  x_coords = np.arange(intensity.shape[1])
+  y_coords = np.arange(intensity.shape[0])
   y_mesh, x_mesh = np.meshgrid(x_coords, y_coords)
   fig = py.figure()
   ax = py.axes(projection="3d")
 
   ax.plot_surface(x_mesh,y_mesh,intensity,cmap="turbo")
+  ax.set_xlabel("Wavelength (nm)")
+  ax.set_ylabel("Time (pixel)")
+  ax.set_zlabel("Intensity")
   py.show()
   return 0
 
 
 
-test = np.array([[414,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
+test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
 cont_test = cont_wavelengths(test)
 print(cont_test[0])
 print(cont_test[-1])
 
 
 data = convert_imd( "this one.imd")
-values = add_calibration(data,cont_test)
+data_subd = background_subtraction(data,300,3)
+values = add_calibration(data_subd,cont_test)
 spark_plot(values)
 plot_3d(data)
+
 
 '''
 spark_plot( data )
@@ -312,7 +325,7 @@ TODO
 - plug auto peaks into temp calcs
 - plot of one wavelengths as it progresses across time
 
-- Open scaling file, Can't figure out file format
+- Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
 '''
 
 '''
