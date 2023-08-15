@@ -139,9 +139,10 @@ def convert_imd(file_name):                #Create 2d array from imd: 1392 colum
 
   #Create 2d array
   rows = np.split(fdata,1040,axis=0)                                         #Split the data into each 1040 pixel row
-  data_2d_array = np.stack(rows,axis=1)                                      #Stack each row on top of eachother
+  data_2d_array = np.stack(rows,axis=0)                                      #Stack each row on top of eachother
 
-  return np.rot90(data_2d_array)
+  data_2d_array = np.flip(data_2d_array,0)      #Flip data so time 0 is at index 0
+  return data_2d_array
 
 def cont_wavelengths(calibration):         #Determine the wavelength value for each pixel based on the calibration file
 #Working based on calibration being 2d array: 0 = pixel, 1 = wavelength
@@ -248,21 +249,16 @@ def auto_peaks(data_2d,rel_prom=0.01,rel_width=0.15):
   py.show()
   return
 
-def plot_3d(intensity, wavelength=0, time=0):
-  '''
-  if wavelength ==0:
-    wavelength = np.arange(0,1392,1)
+def plot_3d(intensity):
 
-  if time==0:
-    time = np.arange(0,1040,1)
-'''
-  x_coords = np.arange(intensity.shape[1])
-  y_coords = np.arange(intensity.shape[0])
-  y_mesh, x_mesh = np.meshgrid(x_coords, y_coords)
+  data = intensity[1:,]
+  x_coords = intensity[0]
+  y_coords = np.arange(0,1040,1)
+  x_mesh, y_mesh = np.meshgrid(x_coords, y_coords)
   fig = py.figure()
   ax = py.axes(projection="3d")
 
-  ax.plot_surface(x_mesh,y_mesh,intensity,cmap="turbo")
+  ax.plot_surface(x_mesh,y_mesh,data,cmap="turbo")
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (pixel)")
   ax.set_zlabel("Intensity")
@@ -279,9 +275,9 @@ print(cont_test[-1])
 
 data = convert_imd( "this one.imd")
 data_subd = background_subtraction(data,300,3)
-values = add_calibration(data_subd,cont_test)
+values = add_calibration(data,cont_test)
 spark_plot(values)
-plot_3d(data)
+plot_3d(values)
 
 
 '''
