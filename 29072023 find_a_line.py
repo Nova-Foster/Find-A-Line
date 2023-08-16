@@ -253,19 +253,49 @@ def plot_3d(intensity):
 
   data = intensity[1:,]
   x_coords = intensity[0]
-  y_coords = np.arange(0,1040,1)
+  y_coords = np.linspace(0,5*0.718,1040)
   x_mesh, y_mesh = np.meshgrid(x_coords, y_coords)
   fig = py.figure()
   ax = py.axes(projection="3d")
 
   ax.plot_surface(x_mesh,y_mesh,data,cmap="turbo")
   ax.set_xlabel("Wavelength (nm)")
-  ax.set_ylabel("Time (pixel)")
+  ax.set_ylabel("Time (ms)")
   ax.set_zlabel("Intensity")
   py.show()
   return 0
 
+def remove_zeros(data):
+  removed = np.clip(data,a_min=0,a_max=1e9)
+  return removed
 
+def integrated_line_image(data):
+  import matplotlib as mpl
+  import matplotlib.cm as cm
+  wavelengths = data[:1,]
+  intensity = data[1:,]
+  hori = np.sum(intensity,axis=0)
+
+
+  '''
+  find 255 intervals based on relative
+  convert relative intensity to one of those intervals
+  plot min as black and max as white
+  '''
+
+  #Convert relative data to colours
+  relative_data = hori/np.amax(hori)
+  norm = mpl.colors.Normalize(vmin=np.amin(relative_data),vmax=np.amax(relative_data))
+  color_mapping = cm.ScalarMappable(norm=norm,cmap="turbo")
+  color_mapping = color_mapping.to_rgba(1)
+
+  for i in range(1392):
+      py.plot( np.linspace(wavelengths[0][i],wavelengths[0][i],1000), np.linspace(0,1,1000),c=color_mapping)
+  
+  py.xlabel("Wavelength (nm)")
+  py.ylabel("Relative intensity (a.u.)")
+  py.show()
+  return 0
 
 test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
 cont_test = cont_wavelengths(test)
@@ -273,17 +303,22 @@ print(cont_test[0])
 print(cont_test[-1])
 
 
-data = convert_imd( "this one.imd")
+data = convert_imd( "this one.IMD")
 data_subd = background_subtraction(data,300,3)
-values = add_calibration(data,cont_test)
+values = add_calibration(data_subd,cont_test)
+values_no_zeros = remove_zeros(values)
+
 spark_plot(values)
+spark_plot(values_no_zeros)
+auto_peaks(values)
+auto_peaks(values_no_zeros)
 plot_3d(values)
+plot_3d(values_no_zeros)
+#integrated_line_image(values)
 
 
-'''
-spark_plot( data )
-auto_peaks( data )
-'''
+
+
 '''
 lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
 intens = np.array([800,800,1500,2000,1650,2500,1650])
@@ -312,7 +347,7 @@ while True:
 TODO
 - BB plot
 - Make boltz line work
-- add axis for time and wavelength into the 2d array
+- add axis for time into the 2d array   <- need slope values for each speed
 # 3d plot across whole thing
 - image for each wavelength across image with relative intensities
 - stitch the two images together
