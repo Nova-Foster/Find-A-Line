@@ -1,3 +1,7 @@
+'''
+Created by Nova Foster (They/Them) 16/08/2023
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
