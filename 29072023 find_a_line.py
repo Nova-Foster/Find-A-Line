@@ -217,13 +217,17 @@ def spark_plot(data_2d):
   #Horizontal profile
   horizontal = py.figure()
   hori = np.sum(data,axis=0)
-  py.plot(wavelengths,hori,".")
+  py.plot(wavelengths,hori)
+  py.xlabel("Wavelengths")
+  py.ylabel("Intensity")
   py.show(block=False)
 
   #Verticle profile
   verticle = py.figure()
   vert = np.sum(data,axis=1)
   py.plot(np.arange(0,len(vert),1),vert)
+  py.xlabel("Time (ms)")
+  py.ylabel("Intensity")
   py.show(block=False)
   return
 
@@ -246,6 +250,8 @@ def auto_peaks(data_2d,strict=True):
   hori = np.sum(data,axis=0)
   auto = py.figure()
   py.plot(wavelengths,hori)
+  py.xlabel("Wavelength (nm)")
+  py.ylabel("Intensity")
   
   #Use scipy to find peaks based on local maxima
   peak_x_cords,_ = sg.find_peaks(hori)                                       #Generate X coords
@@ -303,16 +309,17 @@ def integrated_line_image(data):
   wavelengths = data[:1,]
   intensity = data[1:,]
   hori = np.sum(intensity,axis=0)
-  integrated = py.figure()
 
+  integrated = py.figure()
+  ax = integrated.add_subplot()
   #Convert relative data to colours
   relative_data = hori/np.amax(hori)
 
   for i in range(1392):
       py.plot( np.linspace(wavelengths[0][i],wavelengths[0][i],1000), np.linspace(0,1,1000),color=str(relative_data[i]))
   
-  py.xlabel("Wavelength (nm)")
-  py.ylabel("Relative intensity (a.u.)")
+  ax.set_xlabel("Wavelength (nm)")
+  ax.get_yaxis().set_visible(False)
   py.show(block=False)
   return 0
 
@@ -372,8 +379,12 @@ TODO
 - add axis for time into the 2d array   <- need slope values for each speed
 # 3d plot across whole thing
 # image for each wavelength across image with relative intensities
+- add labels to all plots
+- save useful data
+- try and auto select the lines based on intensities?
+- put excel calibrations into new format & select grating / center in code
 - stitch the two images together
-- Make autopeaks record intensity and wavelength
+# Make autopeaks record intensity and wavelength
 - adjust temp calcs so it uses the recorded wavelengths and the known
 - plug auto peaks into temp calcs
 - plot of one wavelengths as it progresses across time, do this based on autopeaks?
