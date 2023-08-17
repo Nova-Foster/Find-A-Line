@@ -51,7 +51,6 @@ def compare(Observed,margin=0.5,source="main air"):                    #Compare 
 
   return lines
 
-
 def temp_using_2line(matched,intensity):
   '''
   TODO:
@@ -111,7 +110,6 @@ def boltz_line(matched,intensity):
 
   return Temp
 
-
 def boltz_fit(matched,intensity):
   '''
   TODO:
@@ -119,7 +117,7 @@ def boltz_fit(matched,intensity):
   - Test using Boltzmann dist. with noise and added lines
   - Look at various windows to see what works
   '''
-
+  Temp = 0
   return Temp
 
 def convert_imd(file_name):                #Create 2d array from imd: 1392 columns of wavelength & 1040 rows for time
@@ -191,16 +189,35 @@ def cont_wavelengths(calibration):         #Determine the wavelength value for e
   py.show()
   return wavelength_whole
 
-def add_calibration(data,wavelengths=0,time=0):
-  if wavelengths.any() !=0:
-    values = np.vstack([wavelengths,data])
-  return values
+def add_calibration(data, center=0, grating=0, speed=0):
+    # Load correct wavelength file
+    wave_filename = grating + "," + center + ".txt"
+    raw_wavelengths = np.loadtxt(str(wave_filename), delimiter=",")
+    wavelengths = cont_wavelengths(raw_wavelengths)
+    calib_info = "Wave"
+
+    # Stack data in correct way
+    values_with_wave = np.vstack([wavelengths, data])
+
+    # Select correct time
+    '''
+    all_speeds = np.loadtxt("time_bases.txt", delimiter=",")
+    end_time = all_speeds
+    '''
+    end_time = 0.718 * 10
+    times = np.linspace(0, end_time, 1040)
+    times = np.append(-1, times)
+
+    values = np.zeros([1041, 1393])
+    for i in range(1041):
+        values[i] = np.append(times[i], values_with_wave[i][:])
+
+    return values
 
 def background_subtraction(data,center=0,grating=0):
   back_ground = convert_imd("20230810 Full sweep grating 3\Sequence test 1\center 300 Dark.imd")
   subtracted = data - back_ground
   return subtracted
-
 
 def spark_plot(data_2d):
   data = data_2d[1:,:]
@@ -230,7 +247,6 @@ def spark_plot(data_2d):
   py.ylabel("Intensity")
   py.show(block=False)
   return
-
 
 def auto_peaks(data_2d,strict=True):
   import scipy.signal as sg
@@ -299,7 +315,7 @@ def plot_3d(intensity):
   py.show(block=False)
   return 0
 
-def remove_zeros(data):
+def remove_negatives(data):
   removed = np.clip(data,a_min=0,a_max=1e9)
   return removed
 
@@ -323,22 +339,32 @@ def integrated_line_image(data):
   py.show(block=False)
   return 0
 
+def wavelength_over_time(data_2d):
+  data = data_2d[1:,:]
+  wavelengths = data_2d[0]
+  time = 0
+  return 0
+
+def seperate_data_and_calibration(data_2d):          #seperate whole 2d array into: intensity, wavelength, time & info character
+  intensity = data_2d[1:,1:]
+  wavelengths = data_2d[0,1:]
+  times = data_2d[1:,0]
+  calib_info = data_2d[0,0]
+  return intensity,wavelengths,times,calib_info
+
 test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
-cont_test = cont_wavelengths(test)
-print(cont_test[0])
-print(cont_test[-1])
+#cont_test = cont_wavelengths(test)
+#print(cont_test[0])
+#print(cont_test[-1])
 
 
 data = convert_imd( "this one.IMD")
 data_subd = background_subtraction(data,300,3)
-values = add_calibration(data_subd,cont_test)
-values_to_zeros = remove_zeros(values)
+values = add_calibration(data_subd,grating="3",center="300",speed=0)
+intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
 
-spark_plot(values_to_zeros)
-plot_3d(values_to_zeros)
-integrated_line_image(values_to_zeros)
+intensity = remove_negatives(intensity)
 
-temp = auto_peaks(values_to_zeros)
 
 
 sha = np.shape(temp)
@@ -377,32 +403,20 @@ TODO
 - BB plot
 - Make boltz line work
 - add axis for time into the 2d array   <- need slope values for each speed
-# 3d plot across whole thing
-# image for each wavelength across image with relative intensities
-- add labels to all plots
 - save useful data
 - try and auto select the lines based on intensities?
 - put excel calibrations into new format & select grating / center in code
 - stitch the two images together
-# Make autopeaks record intensity and wavelength
 - adjust temp calcs so it uses the recorded wavelengths and the known
 - plug auto peaks into temp calcs
 - plot of one wavelengths as it progresses across time, do this based on autopeaks?
+- make each function accept data with time axis
+- change data[0,0] so functions know what data to use
 
-- Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
-'''
+# 3d plot across whole thing
+# image for each wavelength across image with relative intensities
+# add labels to all plots
+# Make autopeaks record intensity and wavelength
 
-'''
-b'\x02\x00X\x02\x02nmX\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0?\x0c\x00\x9e\x01\x9e\x01K\x03\xbe\x9f\x1a/\xdd\xb4o@K\x03\xe4\x03\n'
-b'\x02\x00X\x02\x02nmX\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0?\x17\x00J\x00J\x00\xdd\x00\n'
-b'\x02\x00X\x02\x02nmX\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0?\x10\x00\x1e\x00\x1e\x00i\x00\xac\x1cZd;h\x81@i\x00j\x00H\xe1z\x14\xae\x07\x82@j\x00\x91\x00J\x0c\x02+\x87\x18\x82@\x91\x001\x02T\xe3\xa5\x9b\xc4X\x82@1\x02X\x02\xd3Mb\x10X\xc4\x85@X\x02\xbb\x02\xb2\x9d\xef\xa7\xc6\x15\x86@\xbb\x02\x00\x03=\n'
-
-Would make sense to be wavlengths as 500 center is much longer due to having more lines & 900 being more than 300 due to all values being bigger
-b'\xd7\xa3p=\xd0v@\xe4\x03\xf2\x03\xd1"\xdb\xf9~Jy@\xf2\x03Y\x04J\x0c\x02+\x87|y@Y\x04\x92\x04\x17\xd9\xce\xf7S={@\x92\x04\xbf\x04\xe5\xd0"\xdb\xf9B|@\xbf\x04\xd2\x04\x1f\x85\xebQ\xb8\xe6|@\xd2\x04\xe8\x04\xbe\x9f\x1a/\xdd\\}@\xe8\x04\x04\x05q=\n'
-b'\xd7\xa3p=\xd0v@\xdd\x00\xea\x00\xd1"\xdb\xf9~Jy@\xea\x003\x01J\x0c\x02+\x87|y@3\x01D\x01J\x0c\x02+\x87\xbcz@D\x01S\x01\x17\xd9\xce\xf7S\xffz@S\x01Y\x01\x17\xd9\xce\xf7S={@Y\x01z\x01o\x12\x83\xc0\xcaY{@z\x01\x8a\x01\x96C\x8bl\xe7\xe5{@\x8a\x01\x8d\x015^\xbaI\x0c$|@\x8d\x01\x95\x01\xe5\xd0"\xdb\xf9B|@\x95\x01\xbc\x01\x1f\x85\xebQ\xb8\xe6|@\xbc\x01\xce\x01d;\xdfO\x8dQ}@\xce\x01\xd7\x01\xbe\x9f\x1a/\xdd\\}@\xd7\x01\xe6\x01q=\n
-b'\xd7\xa3p\xef\x86@\x00\x03#\x03j\xbct\x93\x18s\x87@#\x03&\x039\xb4\xc8v\xbe\xb3\x87@&\x03(\x03\n'
-
-b'\xd7\xa3\x96}@\x04\x05\r\x05\xd5x\xe9&1\xf4}@\r\x050\x05\xac\x1cZd;\x0b~@0\x050\x05#\xdb\xf9~j\xba~@333333,@'
-b'\xd7\xa3\x96}@\xe6\x01\x0c\x02\xac\x1cZd;\x0b~@\x0c\x02.\x02%\x06\x81\x95CE~@.\x02\xfb\x02\xd7\xa3p=\n
-b'\xd7\xa3p=\xc1\x87@(\x038\x03\x0c\x02+\x87\x16\xdc\x87@8\x03I\x03\x0c\x02+\x87\x16\xe4\x87@I\x03T\x03\x12\x83\xc0\xca\xa1\x0b\x88@T\x03\xe2\x03^\xbaI\x0c\x02#\x88@\xe2\x03\xcf\x04h\x91\xed|?\\\x89@\xcf\x04\xcf\x04L7\x89A`\x82\x8c@333333,@''
-'''
+? Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
+''' 
