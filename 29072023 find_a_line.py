@@ -31,7 +31,7 @@ NIST_Data = pd.read_csv("Lines_eV.csv")
 main_air_elements = {"H", "He", "Ar", "N", "O"}
 all_air_elements = {"H", "He", "Ar", "N", "O","Ne", "Kr", "Xe", "I"}
 
-def compare(Observed,margin=0.5,source="all"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
+def compare(Observed,margin=0.5,source="main air"):                    #Compare observed wavelength (nm) to NIST values within range +-margin. Source being elements to select from (Main Air, All Air or All)
  #Change format of inputs
   observed_float = float(Observed)
   margin_float = float(margin)
@@ -206,31 +206,46 @@ def spark_plot(data_2d):
   data = data_2d[1:,:]
   wavelengths = data_2d[0]
   #Colour plot of whole image
+  im_show = py.figure()
   py.imshow(data,interpolation="nearest",origin="lower")
   py.xlabel("x pixel")
   py.ylabel("y pixel")
   py.colorbar()
-  py.show()
+  py.show(block=False)
 
 
   #Horizontal profile
+  horizontal = py.figure()
   hori = np.sum(data,axis=0)
   py.plot(wavelengths,hori,".")
-  py.show()
+  py.show(block=False)
 
   #Verticle profile
+  verticle = py.figure()
   vert = np.sum(data,axis=1)
   py.plot(np.arange(0,len(vert),1),vert)
-  py.show()
+  py.show(block=False)
   return
 
 
-def auto_peaks(data_2d,rel_prom=0.01,rel_width=0.15):
+def auto_peaks(data_2d,strict=True):
   import scipy.signal as sg
 
+  #Load prom. and width. retrctions based on strict: all done by eye so not perfect
+  if strict ==False:
+    rel_prom=0.075
+    rel_width=0.2
+  else:
+    rel_prom = 0.15
+    rel_width=0.25
+
+  data = data_2d[1:,:]
+  wavelengths = data_2d[0]
+
   #Generate horizontal profile
-  hori = np.sum(data_2d,axis=0)
-  py.plot(np.arange(0,len(hori),1),hori)
+  hori = np.sum(data,axis=0)
+  auto = py.figure()
+  py.plot(wavelengths,hori)
   
   #Use scipy to find peaks based on local maxima
   peak_x_cords,_ = sg.find_peaks(hori)                                       #Generate X coords
@@ -242,12 +257,25 @@ def auto_peaks(data_2d,rel_prom=0.01,rel_width=0.15):
   peak_width,_,_,_ = sg.peak_widths(hori,prominent_x)
   Selected_peaks = prominent_x[peak_width>rel_width*max(peak_width)]
 
-  #Draw a line for each prominent peak
-  for i in range(len(Selected_peaks)):
-    py.plot( np.linspace(Selected_peaks[i],Selected_peaks[i],1000), np.linspace(min(hori),max(hori),1000), "r-",alpha=0.2)
 
-  py.show()
-  return
+  returned_val = np.zeros((len(Selected_peaks),3))
+  for i in range(len(Selected_peaks)):
+    current_wavelength = wavelengths[Selected_peaks[i]]
+
+    #Format data to be returned
+    returned_val[i][0] = Selected_peaks[i]
+    returned_val[i][1] = current_wavelength
+    returned_val[i][2] = hori[wavelengths==current_wavelength]
+
+
+    #Draw a line at each wavelength
+    py.plot( np.linspace(current_wavelength,current_wavelength,1000), np.linspace(min(hori),max(hori)*1.1,1000), "r-",alpha=0.2)
+
+  py.show(block=False)
+
+  #Format data to be returned: index: wavelength
+
+  return returned_val
 
 def plot_3d(intensity):
 
@@ -255,14 +283,14 @@ def plot_3d(intensity):
   x_coords = intensity[0]
   y_coords = np.linspace(0,5*0.718,1040)
   x_mesh, y_mesh = np.meshgrid(x_coords, y_coords)
-  fig = py.figure()
+  threed_plot = py.figure()
   ax = py.axes(projection="3d")
 
   ax.plot_surface(x_mesh,y_mesh,data,cmap="turbo")
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (ms)")
   ax.set_zlabel("Intensity")
-  py.show()
+  py.show(block=False)
   return 0
 
 def remove_zeros(data):
@@ -275,26 +303,17 @@ def integrated_line_image(data):
   wavelengths = data[:1,]
   intensity = data[1:,]
   hori = np.sum(intensity,axis=0)
-
-
-  '''
-  find 255 intervals based on relative
-  convert relative intensity to one of those intervals
-  plot min as black and max as white
-  '''
+  integrated = py.figure()
 
   #Convert relative data to colours
   relative_data = hori/np.amax(hori)
-  norm = mpl.colors.Normalize(vmin=np.amin(relative_data),vmax=np.amax(relative_data))
-  color_mapping = cm.ScalarMappable(norm=norm,cmap="turbo")
-  color_mapping = color_mapping.to_rgba(1)
 
   for i in range(1392):
-      py.plot( np.linspace(wavelengths[0][i],wavelengths[0][i],1000), np.linspace(0,1,1000),c=color_mapping)
+      py.plot( np.linspace(wavelengths[0][i],wavelengths[0][i],1000), np.linspace(0,1,1000),color=str(relative_data[i]))
   
   py.xlabel("Wavelength (nm)")
   py.ylabel("Relative intensity (a.u.)")
-  py.show()
+  py.show(block=False)
   return 0
 
 test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
@@ -306,17 +325,20 @@ print(cont_test[-1])
 data = convert_imd( "this one.IMD")
 data_subd = background_subtraction(data,300,3)
 values = add_calibration(data_subd,cont_test)
-values_no_zeros = remove_zeros(values)
+values_to_zeros = remove_zeros(values)
 
-spark_plot(values)
-spark_plot(values_no_zeros)
-auto_peaks(values)
-auto_peaks(values_no_zeros)
-plot_3d(values)
-plot_3d(values_no_zeros)
-#integrated_line_image(values)
+spark_plot(values_to_zeros)
+plot_3d(values_to_zeros)
+integrated_line_image(values_to_zeros)
+
+temp = auto_peaks(values_to_zeros)
 
 
+sha = np.shape(temp)
+for i in range(sha[0]):
+  print(compare(temp[i][1],1))
+
+input()
 
 
 '''
@@ -349,12 +371,12 @@ TODO
 - Make boltz line work
 - add axis for time into the 2d array   <- need slope values for each speed
 # 3d plot across whole thing
-- image for each wavelength across image with relative intensities
+# image for each wavelength across image with relative intensities
 - stitch the two images together
 - Make autopeaks record intensity and wavelength
 - adjust temp calcs so it uses the recorded wavelengths and the known
 - plug auto peaks into temp calcs
-- plot of one wavelengths as it progresses across time
+- plot of one wavelengths as it progresses across time, do this based on autopeaks?
 
 - Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
 '''
