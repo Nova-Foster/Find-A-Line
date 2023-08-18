@@ -219,12 +219,10 @@ def background_subtraction(data,center=0,grating=0):
   subtracted = data - back_ground
   return subtracted
 
-def spark_plot(data_2d):
-  data = data_2d[1:,:]
-  wavelengths = data_2d[0]
+def spark_plot(intensity,wavelengths,times):
   #Colour plot of whole image
   im_show = py.figure()
-  py.imshow(data,interpolation="nearest",origin="lower")
+  py.imshow(intensity,interpolation="nearest",origin="lower")
   py.xlabel("x pixel")
   py.ylabel("y pixel")
   py.colorbar()
@@ -233,7 +231,7 @@ def spark_plot(data_2d):
 
   #Horizontal profile
   horizontal = py.figure()
-  hori = np.sum(data,axis=0)
+  hori = np.sum(intensity,axis=0)
   py.plot(wavelengths,hori)
   py.xlabel("Wavelengths")
   py.ylabel("Intensity")
@@ -241,14 +239,14 @@ def spark_plot(data_2d):
 
   #Verticle profile
   verticle = py.figure()
-  vert = np.sum(data,axis=1)
-  py.plot(np.arange(0,len(vert),1),vert)
+  vert = np.sum(intensity,axis=1)
+  py.plot(times,vert)
   py.xlabel("Time (ms)")
   py.ylabel("Intensity")
   py.show(block=False)
   return
 
-def auto_peaks(data_2d,strict=True):
+def auto_peaks(intensity,wavelengths,strict=True):
   import scipy.signal as sg
 
   #Load prom. and width. retrctions based on strict: all done by eye so not perfect
@@ -259,11 +257,8 @@ def auto_peaks(data_2d,strict=True):
     rel_prom = 0.15
     rel_width=0.25
 
-  data = data_2d[1:,:]
-  wavelengths = data_2d[0]
-
   #Generate horizontal profile
-  hori = np.sum(data,axis=0)
+  hori = np.sum(intensity,axis=0)
   auto = py.figure()
   py.plot(wavelengths,hori)
   py.xlabel("Wavelength (nm)")
@@ -295,20 +290,17 @@ def auto_peaks(data_2d,strict=True):
 
   py.show(block=False)
 
-  #Format data to be returned: index: wavelength
-
   return returned_val
 
-def plot_3d(intensity):
+def plot_3d(intensity,wavelengths,times):
 
-  data = intensity[1:,]
-  x_coords = intensity[0]
-  y_coords = np.linspace(0,5*0.718,1040)
+  x_coords = wavelengths
+  y_coords = times
   x_mesh, y_mesh = np.meshgrid(x_coords, y_coords)
   threed_plot = py.figure()
   ax = py.axes(projection="3d")
 
-  ax.plot_surface(x_mesh,y_mesh,data,cmap="turbo")
+  ax.plot_surface(x_mesh,y_mesh,intensity,cmap="turbo")
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (ms)")
   ax.set_zlabel("Intensity")
@@ -319,11 +311,10 @@ def remove_negatives(data):
   removed = np.clip(data,a_min=0,a_max=1e9)
   return removed
 
-def integrated_line_image(data):
+def integrated_line_image(intensity,wavelengths):
   import matplotlib as mpl
   import matplotlib.cm as cm
-  wavelengths = data[:1,]
-  intensity = data[1:,]
+
   hori = np.sum(intensity,axis=0)
 
   integrated = py.figure()
@@ -332,17 +323,25 @@ def integrated_line_image(data):
   relative_data = hori/np.amax(hori)
 
   for i in range(1392):
-      py.plot( np.linspace(wavelengths[0][i],wavelengths[0][i],1000), np.linspace(0,1,1000),color=str(relative_data[i]))
+      py.plot( np.linspace(wavelengths[i],wavelengths[i],1000), np.linspace(0,1,1000),color=str(relative_data[i]))
   
   ax.set_xlabel("Wavelength (nm)")
   ax.get_yaxis().set_visible(False)
   py.show(block=False)
   return 0
 
-def wavelength_over_time(data_2d):
-  data = data_2d[1:,:]
-  wavelengths = data_2d[0]
-  time = 0
+def wavelength_over_time(intensity,wavelengths,times,wavelength=0,index=0):   #Rounds to 3dp!!!!
+  if index == 0 and wavelength!=0:
+    index = np.where(wavelengths==wavelength)
+
+  specific_intensity = intensity[:,index]
+  over_time = py.figure()
+  py.plot(times,specific_intensity[:,0,0])
+  py.xlabel("Time (ms)")
+  py.ylabel("Intensity")
+  title = str(np.round(wavelength,3)) + " over time"
+  py.title(title)
+  py.show(block=False)
   return 0
 
 def seperate_data_and_calibration(data_2d):          #seperate whole 2d array into: intensity, wavelength, time & info character
@@ -351,6 +350,33 @@ def seperate_data_and_calibration(data_2d):          #seperate whole 2d array in
   times = data_2d[1:,0]
   calib_info = data_2d[0,0]
   return intensity,wavelengths,times,calib_info
+
+
+def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False):
+  spark_plot(intensity,wavelengths,times)
+  integrated_line_image(intensity,wavelengths)
+  plot_3d(intensity,wavelengths,times)
+
+  if analysis ==True:
+    auto_values = auto_peaks(intensity,wavelengths,strict=strict)
+
+    print("Paused so there aren't too many plots: Any key to continue")
+    input()
+
+    shape = np.shape(auto_values)
+    print("Detected Wavelength, Intensity (from horizontal):")
+    for i in range(shape[0]): 
+      wavelength_over_time(intensity,wavelengths,times,wavelength=auto_values[i][1])
+      print(str(auto_values[i][1]) , "nm " , str(auto_values[i][2]))
+
+    
+    print("Paused so : Any key to continue")
+    input()
+    for i in range(shape[0]):
+      print(compare(auto_values[i][1],1))
+
+
+  return 0
 
 test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
 #cont_test = cont_wavelengths(test)
@@ -362,18 +388,11 @@ data = convert_imd( "this one.IMD")
 data_subd = background_subtraction(data,300,3)
 values = add_calibration(data_subd,grating="3",center="300",speed=0)
 intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
-
 intensity = remove_negatives(intensity)
 
-
-
-sha = np.shape(temp)
-for i in range(sha[0]):
-  print(compare(temp[i][1],1))
+all_plots(intensity,wavelengths,times,analysis=True,strict=True,NIST_check=True)
 
 input()
-
-
 '''
 lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
 intens = np.array([800,800,1500,2000,1650,2500,1650])
@@ -412,7 +431,7 @@ TODO
 - plot of one wavelengths as it progresses across time, do this based on autopeaks?
 - make each function accept data with time axis
 - change data[0,0] so functions know what data to use
-
+- autopeaks strict ==True causes an error, two possible values
 # 3d plot across whole thing
 # image for each wavelength across image with relative intensities
 # add labels to all plots

@@ -8,12 +8,12 @@ import matplotlib.animation as anim
 
 freq = 1000
 time_per = (1/freq)*1000
-time_base = 0.5*0.7
+time_base = 0.2*0.7
 #time_per_pixel = time_base/1040
-ddg_per = 3.0001
+ddg_per = 3.000125
 no_sparks = 4
-fraction = 0.1
-times_to_check = 20
+fraction = 0.025
+times_to_check = 40
 
 no_sparks = int( np.ceil(time_base+(fraction*times_to_check)) ) + 1   #No. sparks that will be interacted with in total based + 1 so the plot doesn't change axis
 #sparks_between = ddg_per / time_per
@@ -42,9 +42,6 @@ def frame(interval):
 
 
 hit = np.zeros(times_to_check)
-fig, ax = plt.subplots()
-ani = anim.FuncAnimation(fig=fig, func=frame, frames=times_to_check, interval=300)
-plt.show()
 
 for i in range(times_to_check):
     offset = i * fraction
@@ -56,3 +53,8 @@ for i in range(times_to_check):
         hit[i] =  (min_window < sparks[j] < max_window) + hit[i]
 
 print(hit)
+
+
+fig, ax = plt.subplots()
+ani = anim.FuncAnimation(fig=fig, func=frame, frames=times_to_check, interval=300)
+plt.show()
