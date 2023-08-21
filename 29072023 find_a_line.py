@@ -204,7 +204,7 @@ def add_calibration(data, center=0, grating=0, speed=0):
     all_speeds = np.loadtxt("time_bases.txt", delimiter=",")
     end_time = all_speeds
     '''
-    end_time = 0.718 * 10
+    end_time = 0.718 * 200
     times = np.linspace(0, end_time, 1040)
     times = np.append(-1, times)
 
@@ -215,7 +215,7 @@ def add_calibration(data, center=0, grating=0, speed=0):
     return values
 
 def background_subtraction(data,center=0,grating=0):
-  back_ground = convert_imd("20230810 Full sweep grating 3\Sequence test 1\center 300 Dark.imd")
+  back_ground = convert_imd("20230810 Full sweep grating 3\Sequence test 1\center 700 Dark.imd")
   subtracted = data - back_ground
   return subtracted
 
@@ -352,6 +352,32 @@ def seperate_data_and_calibration(data_2d):          #seperate whole 2d array in
   return intensity,wavelengths,times,calib_info
 
 
+def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
+  from matplotlib import colors
+
+  x_coords = wavelengths
+  y_coords = times[start_y:stop_y]
+  intensity = intensity[start_y:stop_y,:]
+  z_vals = np.where(intensity<5,float("Nan"),intensity)
+
+  threed_lines_plot = py.figure()
+  ax = py.axes(projection="3d")
+
+  plot_colors = py.get_cmap("inferno",stop_y-start_y)
+
+
+  for i in range(len(y_coords)):
+    current_time = np.linspace(y_coords[i],y_coords[i],1392)
+    current_intensity = z_vals[i]
+    current_color = plot_colors(i)
+    ax.plot(wavelengths,current_time,current_intensity,color=current_color)
+
+  ax.set_xlabel("Wavelength (nm)")
+  ax.set_ylabel("Time (μs)")
+  ax.set_zlabel("Intensity")
+  py.show()
+  return(0)
+
 def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False):
   spark_plot(intensity,wavelengths,times)
   integrated_line_image(intensity,wavelengths)
@@ -384,13 +410,16 @@ test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1
 #print(cont_test[-1])
 
 
-data = convert_imd( "this one.IMD")
-data_subd = background_subtraction(data,300,3)
-values = add_calibration(data_subd,grating="3",center="300",speed=0)
+data = convert_imd( "10umVertical - 1000Hz - 950V - 10usmm -ddg - 3.00002 -00028.IMD")
+data_subd = background_subtraction(data,700,3)
+values = add_calibration(data,grating="3",center="700",speed=0)
 intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
-intensity = remove_negatives(intensity)
 
-all_plots(intensity,wavelengths,times,analysis=True,strict=True,NIST_check=True)
+#all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False)
+
+wavelength_vs_time(intensity,wavelengths,times,250,350)
+
+
 
 input()
 '''
@@ -419,6 +448,11 @@ while True:
 
 '''
 TODO
+
+
+MAX:
+- Wavelength v time plot
+
 - BB plot
 - Make boltz line work
 - add axis for time into the 2d array   <- need slope values for each speed
