@@ -35,23 +35,57 @@ def compare(Observed,margin=0.5,source="main air"):                    #Compare 
  #Change format of inputs
   observed_float = float(Observed)
   margin_float = float(margin)
-  source=source.lower()
+  source_low=source.lower()
 
  #Select all wavelength from NIST that fit the range
   lines = NIST_Data[NIST_Data['obs_wl_air(nm)'].between(observed_float-margin_float,observed_float+margin_float)]
 
  #Select the soures from that range
   #Main Air: H, He, Ar, N, O
-  if(source=="main air"):
+  if(source_low=="main air"):
     lines = lines[ lines['element'].isin(main_air_elements)]
   #All Air: H, He, Ar, N, O, Ne, Kr, Xe, I
-  elif(source=="all air"):
-    lines = lines = lines[ lines['element'].isin(all_air_elements)]
+  elif(source_low=="all air"):
+    lines = lines[ lines['element'].isin(all_air_elements)]
+  elif(source_low!="all"):
+   element = [str(source)]
+   lines = lines[ lines['element'].isin(element)]
   #Else covers all possible sources
 
   return lines
 
+def multiple_2line(matched,intensity,observed=[]):
+  no_points = len(matched)
+
+  matched_comb = []
+  intensity_comb = []
+  observed_comb = []
+
+  try:
+    for i in range(no_points):
+        for j in range(i + 1, no_points):
+            matched_comb.append([matched[i], matched[j]])
+            intensity_comb.append([intensity[i], intensity[j]])
+            observed_comb.append([observed[i], observed[j]])
+  except:
+    for i in range(no_points):
+        for j in range(i + 1, no_points):
+            matched_comb.append([matched[i], matched[j]])
+            intensity_comb.append([intensity[i], intensity[j]])
+
+  no_points = len(matched_comb)
+  temps = np.zeros([no_points,3])
+
+
+  for i in range(no_points):
+    temps[i][0] = temp_using_2line(matched_comb[i],intensity_comb[i])
+    temps[i][1] = matched_comb[i][0]
+    temps[i][2] = matched_comb[i][1]
+
+  return temps
+
 def temp_using_2line(matched,intensity,observed=[]):
+  # sourcery skip: inline-immediately-returned-variable
   matched = np.asarray(matched)
   intensity = np.asarray(intensity)
   observed = np.asarray(observed)
@@ -301,6 +335,12 @@ def auto_peaks(intensity,wavelengths,strict=True):
 
   return returned_val
 
+
+def auto_analysis(intensity,observed):
+
+  copy out auto_plots part and put it here
+  return 0
+
 def plot_3d(intensity,wavelengths,times):
 
   x_coords = wavelengths
@@ -317,8 +357,7 @@ def plot_3d(intensity,wavelengths,times):
   return 0
 
 def remove_negatives(data):
-  removed = np.clip(data,a_min=0,a_max=1e9)
-  return removed
+  return np.clip(data,a_min=0,a_max=1e9)
 
 def integrated_line_image(intensity,wavelengths):
   import matplotlib as mpl
@@ -348,7 +387,7 @@ def wavelength_over_time(intensity,wavelengths,times,wavelength=0,index=0):   #R
   py.plot(times,specific_intensity[:,0,0])
   py.xlabel("Time (ms)")
   py.ylabel("Intensity")
-  title = str(np.round(wavelength,3)) + " over time"
+  title = f"{str(np.round(wavelength, 3))} over time"
   py.title(title)
   py.show(block=False)
   return 0
@@ -371,7 +410,7 @@ def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
   threed_lines_plot = py.figure()
   ax = py.axes(projection="3d")
 
-  plot_colors = py.get_cmap("rainbow",(stop_y-start_y)*10)
+  plot_colors = py.get_cmap("inferno",(stop_y-start_y))
 
 
   for i in range(len(y_coords)):
@@ -402,20 +441,18 @@ def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=
     print("Detected Wavelength, Intensity (from horizontal):")
     for i in range(shape[0]): 
       wavelength_over_time(intensity,wavelengths,times,wavelength=auto_values[i][1])
-      print(str(auto_values[i][1]) , "nm " , str(auto_values[i][2]))
+      print(auto_values[i][1], "nm ", auto_values[i][2])
 
-    
+
   if NIST_check ==True:
       print("Paused: Any key to continue")
       input()
       for i in range(shape[0]):
-        print(compare(auto_values[i][1],1))
+        print(compare(auto_values[i][1],2,"all air"))
 
 
   return 0
 
-
-temp_using_2line([250.0187,250.02],[200,100])
 
 
 data = convert_imd( "10umVertical - 1000Hz - 950V - 10usmm -ddg - 3.00002 -00028.IMD")
@@ -423,13 +460,13 @@ data_subd = background_subtraction(data,700,3)
 values = add_calibration(data,grating="3",center="700",speed=0)
 intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
 
-#all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False)
+all_plots(intensity,wavelengths,times,analysis=True,strict=True,NIST_check=True)
 
 wavelength_vs_time(intensity,wavelengths,times,250,350)
 
 
 
-input()
+#input()
 '''
 lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
 intens = np.array([800,800,1500,2000,1650,2500,1650])
@@ -443,7 +480,15 @@ print(boltz_line(lambdas,intens))
 
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
 '''
-'''
+data = np.array([[521.820200,5673,522.149840],[515.323500,4749,516.00177],[510.554100,3273,510.97076]])
+
+matched=np.array([521.820200,515.323500,510.554100])
+intensity = np.array([5673,4749,3273])
+observed = np.array([522.149840,516.00177,510.97076])
+print(multiple_2line(matched,intensity,observed))
+print(boltz_line(matched,intensity))
+#boltz_line([510.6,515.3,521.8],[5673,4749,3273,2927],[522.19484,516.00177,510.97076])
+
 while True:
   print("Please enter the observed wavelength(nm), margin to search (observed +-) and lines to check (Main Air, All Air or all)")
   observed = input()
@@ -451,25 +496,17 @@ while True:
   source = input()
 
   print( compare(observed, margin, source) )
-'''
+
 
 
 '''
 TODO
-
-
-
-
-
 - BB plot
-
 - save useful data
 - put excel calibrations into new format & select grating / center in code
 - stitch the two images together
-- adjust temp calcs so it uses the recorded wavelengths and the known
 - plug auto peaks into temp calcs
-- make each function accept data with time axis
-- autopeaks strict ==True causes an error, two possible values
+- autopeaks strict == True causes an error, two possible values
 - make wavelengths vs time into a proper line plot based on code in long paper
 
 # 3d plot across whole thing
@@ -481,6 +518,8 @@ TODO
 # plot of one wavelengths as it progresses across time, do this based on autopeaks?
 # Wavelength v time plot
 # Make boltz line work
+# adjust temp calcs so it uses the recorded wavelengths and the known
+# make each function accept data with time axis
 
 ? Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
 ''' 
