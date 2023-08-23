@@ -51,11 +51,10 @@ def compare(Observed,margin=0.5,source="main air"):                    #Compare 
 
   return lines
 
-def temp_using_2line(matched,intensity):
-  '''
-  TODO:
-  - Loop so each pair of lines is used (If the elements match)
-  '''
+def temp_using_2line(matched,intensity,observed=[]):
+  matched = np.asarray(matched)
+  intensity = np.asarray(intensity)
+  observed = np.asarray(observed)
 
  #Select values for each of the two lines and assign them to a new structure. iloc to get them as numerical values not data frames
   line1 = NIST_Data[NIST_Data["obs_wl_air(nm)"]==matched[0]].iloc[0]
@@ -63,8 +62,13 @@ def temp_using_2line(matched,intensity):
 
  #Calculate each part of the equation
   prefactor = (float(line2['Ek(eV)']) - float(line1['Ek(eV)'])) /Boltzmann
-  numerator = intensity[0]*line1['obs_wl_air(nm)']*line2['Aki(10^8 s^-1)']*line2['g_k']
-  denomonator = intensity[1]*line2['obs_wl_air(nm)']*line1['Aki(10^8 s^-1)']*line1['g_k']
+
+  try:
+    numerator = intensity[0]*observed[0]*line2['Aki(10^8 s^-1)']*line2['g_k']
+    denomonator = intensity[1]*observed[1]*line1['Aki(10^8 s^-1)']*line1['g_k']
+  except:
+    numerator = intensity[0]*line1['obs_wl_air(nm)']*line2['Aki(10^8 s^-1)']*line2['g_k']
+    denomonator = intensity[1]*line2['obs_wl_air(nm)']*line1['Aki(10^8 s^-1)']*line1['g_k']
 
  #Calculate temperature using the equation
   Temp = prefactor * np.log(numerator/denomonator)**(-1)
@@ -74,15 +78,22 @@ def temp_using_2line(matched,intensity):
 def line(x,m,c):   #Line function used for curve_fit in bolt_line
   return m*x+c
 
-def boltz_line(matched,intensity):
+def boltz_line(matched,intensity,observed=[]):
   from scipy.optimize import curve_fit
 
+  matched = np.asarray(matched)
+  intensity = np.asarray(intensity)
+  observed = np.asarray(observed)
   #Load values for matched lines into seperate array for easier handling
   lines = NIST_Data[NIST_Data["obs_wl_air(nm)"].isin(matched)]
-
+  
   #Calculate x and y values for the plot
   x_data = lines['Ek(eV)']
-  y_data = np.log( (intensity*lines['obs_wl_air(nm)'])/(lines['g_k']*lines['Aki(10^8 s^-1)']))
+
+  try:
+    y_data = np.log( (intensity*observed/(lines['g_k']*lines['Aki(10^8 s^-1)'])))
+  except:
+    y_data = np.log( (intensity*lines['obs_wl_air(nm)'])/(lines['g_k']*lines['Aki(10^8 s^-1)']))
 
   #Format the data
   x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
@@ -103,10 +114,8 @@ def boltz_line(matched,intensity):
   py.legend()
   py.show()
 
-
   # Calculate temperature from the slope
   Temp = (-1/pop[0])/Boltzmann
-
 
   return Temp
 
@@ -351,7 +360,6 @@ def seperate_data_and_calibration(data_2d):          #seperate whole 2d array in
   calib_info = data_2d[0,0]
   return intensity,wavelengths,times,calib_info
 
-
 def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
   from matplotlib import colors
 
@@ -363,14 +371,14 @@ def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
   threed_lines_plot = py.figure()
   ax = py.axes(projection="3d")
 
-  plot_colors = py.get_cmap("inferno",stop_y-start_y)
+  plot_colors = py.get_cmap("rainbow",(stop_y-start_y)*10)
 
 
   for i in range(len(y_coords)):
     current_time = np.linspace(y_coords[i],y_coords[i],1392)
     current_intensity = z_vals[i]
     current_color = plot_colors(i)
-    ax.plot(wavelengths,current_time,current_intensity,color=current_color)
+    ax.plot(x_coords,current_time,current_intensity,color=current_color)
 
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (μs)")
@@ -378,10 +386,11 @@ def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
   py.show()
   return(0)
 
-def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False):
+def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False,start_y=0,stop_y=100):
   spark_plot(intensity,wavelengths,times)
   integrated_line_image(intensity,wavelengths)
   plot_3d(intensity,wavelengths,times)
+  wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y)
 
   if analysis ==True:
     auto_values = auto_peaks(intensity,wavelengths,strict=strict)
@@ -396,18 +405,17 @@ def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=
       print(str(auto_values[i][1]) , "nm " , str(auto_values[i][2]))
 
     
-    print("Paused so : Any key to continue")
-    input()
-    for i in range(shape[0]):
-      print(compare(auto_values[i][1],1))
+  if NIST_check ==True:
+      print("Paused: Any key to continue")
+      input()
+      for i in range(shape[0]):
+        print(compare(auto_values[i][1],1))
 
 
   return 0
 
-test = np.array([[414,600,843,996,1010,1081,1098,1113,1119,1152,1167,1170,1215,1234,1256,1284,1293,1328],[253.652,300,365.015,404.656,407.783,427.397,431.958,435.833,437.612,446.369,450.235,452.186,462.42,469.804,473.415,479.262,480.702,491.651]])
-#cont_test = cont_wavelengths(test)
-#print(cont_test[0])
-#print(cont_test[-1])
+
+temp_using_2line([250.0187,250.02],[200,100])
 
 
 data = convert_imd( "10umVertical - 1000Hz - 950V - 10usmm -ddg - 3.00002 -00028.IMD")
@@ -450,26 +458,29 @@ while True:
 TODO
 
 
-MAX:
-- Wavelength v time plot
+
+
 
 - BB plot
-- Make boltz line work
-- add axis for time into the 2d array   <- need slope values for each speed
+
 - save useful data
-- try and auto select the lines based on intensities?
 - put excel calibrations into new format & select grating / center in code
 - stitch the two images together
 - adjust temp calcs so it uses the recorded wavelengths and the known
 - plug auto peaks into temp calcs
-- plot of one wavelengths as it progresses across time, do this based on autopeaks?
 - make each function accept data with time axis
-- change data[0,0] so functions know what data to use
 - autopeaks strict ==True causes an error, two possible values
+- make wavelengths vs time into a proper line plot based on code in long paper
+
 # 3d plot across whole thing
 # image for each wavelength across image with relative intensities
 # add labels to all plots
 # Make autopeaks record intensity and wavelength
+# add axis for time into the 2d array
+# try and auto select the lines based on intensities?
+# plot of one wavelengths as it progresses across time, do this based on autopeaks?
+# Wavelength v time plot
+# Make boltz line work
 
 ? Open scaling file, Can't figure out file format   <- not really needed as long as the format is input correctly
 ''' 

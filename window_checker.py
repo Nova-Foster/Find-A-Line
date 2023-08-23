@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 
-freq = 1000
+freq = 10000
 time_per = (1/freq)*1000
-time_base = 0.2*0.7
+time_base = 1e-6*0.7
 #time_per_pixel = time_base/1040
 ddg_per = 3.000125
 no_sparks = 4
