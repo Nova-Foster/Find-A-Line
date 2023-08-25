@@ -54,28 +54,23 @@ def compare(Observed,margin=0.5,source="main air"):                    #Compare 
 
   return lines
 
-def multiple_2line(matched,intensity,observed=[]):
+def multiple_2line(matched,intensity):    #Repeat 2 line time for each combination of matched and intensity
   no_points = len(matched)
 
+  #Arrays to store each combination
   matched_comb = []
   intensity_comb = []
   observed_comb = []
 
-  try:
-    for i in range(no_points):
-        for j in range(i + 1, no_points):
-            matched_comb.append([matched[i], matched[j]])
-            intensity_comb.append([intensity[i], intensity[j]])
-            observed_comb.append([observed[i], observed[j]])
-  except:
-    for i in range(no_points):
-        for j in range(i + 1, no_points):
-            matched_comb.append([matched[i], matched[j]])
-            intensity_comb.append([intensity[i], intensity[j]])
+  #Find each combination
+  for i in range(no_points):
+      for j in range(i + 1, no_points):
+        matched_comb.append([matched[i], matched[j]])
+        intensity_comb.append([intensity[i], intensity[j]])
 
+  #Call temp_using_2line for each pair. Include each wavelength used 
   no_points = len(matched_comb)
   temps = np.zeros([no_points,3])
-
 
   for i in range(no_points):
     temps[i][0] = temp_using_2line(matched_comb[i],intensity_comb[i])
@@ -84,8 +79,8 @@ def multiple_2line(matched,intensity,observed=[]):
 
   return temps
 
-def temp_using_2line(matched,intensity,observed=[]):
-  # sourcery skip: inline-immediately-returned-variable
+def temp_using_2line(matched,intensity,observed=[]):  #Calculate the temperature using the 2 line method
+  #Convert each to numpy arrays as this avoids some bugs
   matched = np.asarray(matched)
   intensity = np.asarray(intensity)
   observed = np.asarray(observed)
@@ -97,30 +92,27 @@ def temp_using_2line(matched,intensity,observed=[]):
  #Calculate each part of the equation
   prefactor = (float(line2['Ek(eV)']) - float(line1['Ek(eV)'])) /Boltzmann
 
-  try:
+  try:    #Try for when observed isn't empty
     numerator = intensity[0]*observed[0]*line2['Aki(10^8 s^-1)']*line2['g_k']
     denomonator = intensity[1]*observed[1]*line1['Aki(10^8 s^-1)']*line1['g_k']
-  except:
+  except: #Except for when it is empty: this one is used more
     numerator = intensity[0]*line1['obs_wl_air(nm)']*line2['Aki(10^8 s^-1)']*line2['g_k']
     denomonator = intensity[1]*line2['obs_wl_air(nm)']*line1['Aki(10^8 s^-1)']*line1['g_k']
 
- #Calculate temperature using the equation
-  Temp = prefactor * np.log(numerator/denomonator)**(-1)
-
-  return Temp
+  return prefactor * np.log(numerator/denomonator)**(-1)   #Return temperature
 
 def line(x,m,c):   #Line function used for curve_fit in bolt_line
   return m*x+c
 
-def boltz_line(matched,intensity,observed=[]):
+def boltz_line(matched,intensity,observed=[]):   #Calculate temperature using Boltzmann line method
   from scipy.optimize import curve_fit
-
   matched = np.asarray(matched)
   intensity = np.asarray(intensity)
   observed = np.asarray(observed)
+
   #Load values for matched lines into seperate array for easier handling
   lines = NIST_Data[NIST_Data["obs_wl_air(nm)"].isin(matched)]
-  
+
   #Calculate x and y values for the plot
   x_data = lines['Ek(eV)']
 
@@ -131,11 +123,11 @@ def boltz_line(matched,intensity,observed=[]):
 
   #Format the data
   x_data, y_data = zip(*sorted(zip(x_data, y_data)))   #Combine, sort then split x and y data so they are plotted correctly. This does convert the dtype from dframe to tuple
-  x_data = np.asarray(x_data,dtype=float)   #Convert the two to numpy arrays as floats
+  x_data = np.asarray(x_data,dtype=float)              #Convert the two to numpy arrays as floats
   y_data = np.asarray(y_data,dtype=float)
   py.plot(x_data,y_data,".",label="Data")
 
-  
+
   #Fit a line to x and y data. Converting to numpy arrays as pandas can't be used
   #Pop[0] is gradient of line, pop[1] is y intercept
   #pcov covaraince so np.sqrt(pcov.diagonal()[:]) is uncertainty
@@ -144,14 +136,11 @@ def boltz_line(matched,intensity,observed=[]):
   #Plot the fit
   x_range = np.linspace(np.min(x_data), np.max(x_data), 1000)
   py.plot(x_range, line(x_range, pop[0], pop[1]), "r-", label="Fit")
-
   py.legend()
   py.show()
 
-  # Calculate temperature from the slope
-  Temp = (-1/pop[0])/Boltzmann
-
-  return Temp
+  #Return temperature
+  return (-1/pop[0])/Boltzmann    
 
 def boltz_fit(matched,intensity):
   '''
@@ -221,18 +210,18 @@ def cont_wavelengths(calibration):         #Determine the wavelength value for e
 
   #Continue the scale for last value to the final pixel
   wavelength_change = wavelength_whole[-1] - wavelength_whole[-2]                          #Amount of wavelength per pixel
-  end_val = next_wavelength + (wavelength_change*(1392-calibration[0][-1]))                       #Final value of the scale
-  end_scale = np.linspace(calibration[1][-1],end_val,1392-int(calibration[0][-1]))       #Create scale between final calibration and the end
+  end_val = next_wavelength + (wavelength_change*(1392-calibration[0][-1]))                #Final value of the scale
+  end_scale = np.linspace(calibration[1][-1],end_val,1392-int(calibration[0][-1]))         #Create scale between final calibration and the end
   wavelength_whole = np.append(wavelength_whole,end_scale)                                 #Append to pre-existing scale
   
-
+  #Plot the wavelengths vs pixel to show the linearity
   py.plot(np.linspace(0,1391,1392),wavelength_whole,lw=1)
   py.xlabel("Pixel")
   py.ylabel("Wavelength(nm)")
-  py.show()
+  py.show(block=False)
   return wavelength_whole
 
-def add_calibration(data, center=0, grating=0, speed=0):
+def add_calibration(data, center=0, grating=0, timebase=100):   #Add wavelength and speed calibration
     # Load correct wavelength file
     wave_filename = grating + "," + center + ".txt"
     raw_wavelengths = np.loadtxt(str(wave_filename), delimiter=",")
@@ -244,32 +233,39 @@ def add_calibration(data, center=0, grating=0, speed=0):
 
     # Select correct time
     '''
+    TODO: Speed is currently just hard coded, need proper timebases in a file and a way to select them
     all_speeds = np.loadtxt("time_bases.txt", delimiter=",")
-    end_time = all_speeds
+    end_time = all_speeds[select based on speed]
     '''
-    end_time = 0.718 * 200
-    times = np.linspace(0, end_time, 1040)
-    times = np.append(-1, times)
+    times = np.linspace(0, float(timebase), 1040)
+    times = np.append(-1, times)                                   #[0,0] of the calibrated file isn't used, -1 to show calibration has been added
 
     values = np.zeros([1041, 1393])
     for i in range(1041):
-        values[i] = np.append(times[i], values_with_wave[i][:])
+        values[i] = np.append(times[i], values_with_wave[i][:])   #Add the time to each column
 
     return values
 
-def background_subtraction(data,center=0,grating=0):
-  back_ground = convert_imd("20230810 Full sweep grating 3\Sequence test 1\center 700 Dark.imd")
-  subtracted = data - back_ground
-  return subtracted
+def background_subtraction(data,background):  #Subtract the background
+  '''
+  TODO: select the background file based on the center and grating
+  '''
+  back_ground = convert_imd(str(background))
+  return data - back_ground
 
-def spark_plot(intensity,wavelengths,times):
+def spark_plot(intensity,wavelengths,times,file=None):  #Plot the image in terms of pixels, hori and vert profile
   #Colour plot of whole image
+  try:
+    file = str(file)
+  except Exception:
+    file = ""
   im_show = py.figure()
   py.imshow(intensity,interpolation="nearest",origin="lower")
   py.xlabel("x pixel")
   py.ylabel("y pixel")
+  py.title(f"Color plot {file}")
   py.colorbar()
-  py.show(block=False)
+  #py.show(block=False)
 
 
   #Horizontal profile
@@ -278,6 +274,7 @@ def spark_plot(intensity,wavelengths,times):
   py.plot(wavelengths,hori)
   py.xlabel("Wavelengths")
   py.ylabel("Intensity")
+  py.title(f"Horizontal profile {file}")
   py.show(block=False)
 
   #Verticle profile
@@ -286,10 +283,20 @@ def spark_plot(intensity,wavelengths,times):
   py.plot(times,vert)
   py.xlabel("Time (ms)")
   py.ylabel("Intensity")
-  py.show(block=False)
+  py.title(f"Verticle profile {file}")
+  
+  #py.show(block=False)
+  
+  if file!="":
+    py.close("all")
+    base_name = "Batch_output/"
+    horizontal.savefig(f"Batch_output/Horizontal -  {file}.png")
+    im_show.savefig(f"Batch_output/color_image - {file}.png")
+    verticle.savefig(f"Batch_output/vertical - {file}.png")
+
   return
 
-def auto_peaks(intensity,wavelengths,strict=True):
+def auto_peaks(intensity,wavelengths,strict=True):  #Determine the peaks in data
   import scipy.signal as sg
 
   #Load prom. and width. retrctions based on strict: all done by eye so not perfect
@@ -309,14 +316,11 @@ def auto_peaks(intensity,wavelengths,strict=True):
   
   #Use scipy to find peaks based on local maxima
   peak_x_cords,_ = sg.find_peaks(hori)                                       #Generate X coords
-
   peak_prominence,_,_ = sg.peak_prominences(hori,peak_x_cords)               #Find how prominent each peak is based on surroundings
-  prominent_x = peak_x_cords[peak_prominence>rel_prom*max(peak_prominence)]
+  prominent_x = peak_x_cords[peak_prominence>rel_prom*max(peak_prominence)]  #Select the most prominent peaks based on rel_prom
   
- 
-  peak_width,_,_,_ = sg.peak_widths(hori,prominent_x)
-  Selected_peaks = prominent_x[peak_width>rel_width*max(peak_width)]
-
+  peak_width,_,_,_ = sg.peak_widths(hori,prominent_x)                        #Find how wide each prominent peak is
+  Selected_peaks = prominent_x[peak_width>rel_width*max(peak_width)]         #Select the widest with rel_width as a threshold
 
   returned_val = np.zeros((len(Selected_peaks),3))
   for i in range(len(Selected_peaks)):
@@ -326,7 +330,6 @@ def auto_peaks(intensity,wavelengths,strict=True):
     returned_val[i][0] = Selected_peaks[i]
     returned_val[i][1] = current_wavelength
     returned_val[i][2] = hori[wavelengths==current_wavelength]
-
 
     #Draw a line at each wavelength
     py.plot( np.linspace(current_wavelength,current_wavelength,1000), np.linspace(min(hori),max(hori)*1.1,1000), "r-",alpha=0.2)
@@ -338,11 +341,15 @@ def auto_peaks(intensity,wavelengths,strict=True):
 
 def auto_analysis(intensity,observed):
 
-  copy out auto_plots part and put it here
+  #copy out auto_plots part and put it here
   return 0
 
-def plot_3d(intensity,wavelengths,times):
-
+def plot_3d(intensity,wavelengths,times,file=None):  #Plots wavelength v. intensity v. time
+  try:
+      file = str(file)
+  except Exception:
+    file = ""
+    
   x_coords = wavelengths
   y_coords = times
   x_mesh, y_mesh = np.meshgrid(x_coords, y_coords)
@@ -353,36 +360,52 @@ def plot_3d(intensity,wavelengths,times):
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (ms)")
   ax.set_zlabel("Intensity")
+  ax.set_title(f"3D plot {file}")
   py.show(block=False)
+  
+  if file!="":
+    threed_plot.savefig(f"Batch_output/3dPlot - {file}.png")
   return 0
 
-def remove_negatives(data):
+def remove_negatives(data):                #Sets any negative value to 0
   return np.clip(data,a_min=0,a_max=1e9)
 
-def integrated_line_image(intensity,wavelengths):
+def integrated_line_image(intensity,wavelengths,file=None):  #Creates an time integrated line image 
   import matplotlib as mpl
   import matplotlib.cm as cm
 
+  try:
+    file = str(file)
+  except Exception:
+    file = ""
+    
   hori = np.sum(intensity,axis=0)
-
   integrated = py.figure()
   ax = integrated.add_subplot()
+  
   #Convert relative data to colours
   relative_data = hori/np.amax(hori)
-
   for i in range(1392):
       py.plot( np.linspace(wavelengths[i],wavelengths[i],1000), np.linspace(0,1,1000),color=str(relative_data[i]))
   
   ax.set_xlabel("Wavelength (nm)")
   ax.get_yaxis().set_visible(False)
+  ax.set_title(f"Time integrated image {file}")
   py.show(block=False)
+  
+  if file!="":
+    integrated.savefig(f"Batch_output/time_integrated - {file}.png")
+  
   return 0
 
-def wavelength_over_time(intensity,wavelengths,times,wavelength=0,index=0):   #Rounds to 3dp!!!!
-  if index == 0 and wavelength!=0:
+def wavelength_over_time(intensity,wavelengths,times,wavelength=0,index=0): #Plot a wavelength over time  #Rounds to 3dp!!!!
+  if index == 0 and wavelength!=0:              #Select the wavelength based on calibration
     index = np.where(wavelengths==wavelength)
 
+  #Select the correct intensity
   specific_intensity = intensity[:,index]
+  
+  #Plot and set the correct title
   over_time = py.figure()
   py.plot(times,specific_intensity[:,0,0])
   py.xlabel("Time (ms)")
@@ -399,13 +422,18 @@ def seperate_data_and_calibration(data_2d):          #seperate whole 2d array in
   calib_info = data_2d[0,0]
   return intensity,wavelengths,times,calib_info
 
-def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
+def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100,file=None): #Plot between start and stop y
   from matplotlib import colors
+  try:
+    file = str(file)
+  except Exception:
+    file = ""
 
   x_coords = wavelengths
   y_coords = times[start_y:stop_y]
   intensity = intensity[start_y:stop_y,:]
-  z_vals = np.where(intensity<5,float("Nan"),intensity)
+  inten_lim = 3
+  z_vals = np.where(intensity<inten_lim,float("Nan"),intensity)
 
   threed_lines_plot = py.figure()
   ax = py.axes(projection="3d")
@@ -422,14 +450,18 @@ def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100):
   ax.set_xlabel("Wavelength (nm)")
   ax.set_ylabel("Time (μs)")
   ax.set_zlabel("Intensity")
-  py.show()
+  ax.set_title(f"3D plot, intensity limit {inten_lim} {file}")
+  py.show(block=False)
+  
+  if file!="":
+    threed_lines_plot.savefig(f"Batch_output/3D plot, intensity limit {inten_lim} - {file}.png")
   return(0)
 
-def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False,start_y=0,stop_y=100):
-  spark_plot(intensity,wavelengths,times)
-  integrated_line_image(intensity,wavelengths)
-  plot_3d(intensity,wavelengths,times)
-  wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y)
+def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False,start_y=0,stop_y=100,file=None):
+  spark_plot(intensity,wavelengths,times,file)
+  integrated_line_image(intensity,wavelengths,file)
+  plot_3d(intensity,wavelengths,times,file)
+  wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y,file)
 
   if analysis ==True:
     auto_values = auto_peaks(intensity,wavelengths,strict=strict)
@@ -453,20 +485,67 @@ def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=
 
   return 0
 
+def standard_load(file,background,grating,center,timebase,negatives=False):
+  data = convert_imd(str(file))
+  data = background_subtraction(data,background)
+  
+  if negatives==False:
+    data = remove_negatives(data)
+
+  values = add_calibration(data,center,grating,timebase)
+  return(values)
+  
+def batch_process():
+  import os
+  from pathlib import Path
+  
+  print("What is the complete file path to the folder?")
+  path = str(input())
+  
+  print("What is the complete file path to the background image?")
+  background = str(input())
+  source = Path(path)
+  files = source.glob("*.IMD")
+  
+  print("Please enter the grating, center wavelength, time base and unit (such as 3,700,50,ms)")
+  grating, center, timebase, time_unit = input().split(",")
+  
+  for file in files:
+    with file.open("r") as file_handle:
+      file_path = file_handle.name
+      file_path_sep = file_path.split("\\")
+      file_name = file_path_sep[-1]
+      file_name = file_name.replace(".IMD","")
+      print("Working on: ", file_name)
+      
+      current_values = standard_load(file_path,background,grating,center,timebase)
+      intensity, wavelengths,times,_ = seperate_data_and_calibration(current_values)
+      all_plots(intensity,wavelengths,times,analysis=False,file=file_name)
+
+  return "All done :)"
 
 
-data = convert_imd( "10umVertical - 1000Hz - 950V - 10usmm -ddg - 3.00002 -00028.IMD")
+print(batch_process())
+'''
+data = convert_imd( "potential 250nsmm.IMD")
 data_subd = background_subtraction(data,700,3)
 values = add_calibration(data,grating="3",center="700",speed=0)
 intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
 
-all_plots(intensity,wavelengths,times,analysis=True,strict=True,NIST_check=True)
 
-wavelength_vs_time(intensity,wavelengths,times,250,350)
+sel_start = 250
+sel_end = 400
+times = np.arange(0,1041,1)
+wavelength_vs_time(intensity,wavelengths,times,sel_start,sel_end)
+input()
+#all_plots(intensity,wavelengths,times,analysis=True,strict=True,NIST_check=True)
+
+
 
 
 
 #input()
+'''
 '''
 lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
 intens = np.array([800,800,1500,2000,1650,2500,1650])
@@ -479,6 +558,7 @@ print(boltz_line(lambdas,intens))
 
 
 print(temp_using_2line([510.5541,515.3235],[0.55,0.9]))
+'''
 '''
 data = np.array([[521.820200,5673,522.149840],[515.323500,4749,516.00177],[510.554100,3273,510.97076]])
 
@@ -496,11 +576,14 @@ while True:
   source = input()
 
   print( compare(observed, margin, source) )
-
+'''
 
 
 '''
 TODO
+- auto analysis function
+- load speeds in add_calibration
+- select correct file in back. sub.
 - BB plot
 - save useful data
 - put excel calibrations into new format & select grating / center in code

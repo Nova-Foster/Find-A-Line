@@ -1,0 +1,59 @@
+[Acquisition Setup]
+Acquisition Type=Accumulation
+Dark Field Correction Activated=Yes
+Dark Field Correction File=C:\Users\Admin\Desktop\Meirion\Hot Pixel Correction\Nova Hot Pixels 20230721\20230108 - 0.1s exposure dark image.imd
+Dark Field Correction Offset=1
+Uniformity Correction Activated=No
+Jitter Correction Activated=No
+Photon Counting Activated=No
+Reset Memory before Accumulation=Yes
+Shutter opens during Accumulation by Software Control=No
+Acquisition Number of Images=1
+Subtract Images Activated=No
+Uniformity Correction on Accumulated Image Activated=No
+Distortion Correction Activated=Yes
+Distortion Correction File=C:\Users\Admin\Desktop\Meirion\Distortion Correction from 2020.txt
+[Readout Camera Setup]
+Image Size=1392 x 1040
+Acquisition Mode=Single shot
+Exposure Time=100 ms
+Rotation=0
+Flip Horizontally=Yes
+Flip Vertically=No
+Readout Magnification=2.23
+User Defined Pixel Size Activated=Yes
+User defined horizontal Axis Pixel Size=14.1
+User defined vertical Axis Pixel Size=14.1
+[Streak Camera Setup]
+Streak camera communication=Ethernet
+Shutter Status=Opened
+Focus=OFF
+MCP Connected=Yes
+MCP Gain=950
+PhotoCathode Gain=390
+Unit1 Speed=100us/mm
+MCP Trigger=Continuous
+PhotoCathode Trigger=Continuous
+[Calibration Setup]
+CalibX_Type=None
+CalibY_Type=None
+[ROI]
+Top=0
+Left=0
+Bottom=1039
+Right=1391
+Type=0
+[Parameters]
+Image Contrast=31
+Image Comment=
+[Sweep Unit Setup]
+UnitID_1=6181
+UnitID_2=-1
+SpeedUnit_1=100us/mm
+SpeedUnit_2=-1
+[Geometrical Correction]
+StaticDistortionCorrected=1
+NonLinearityCorrected=1
+TransitTimeVaritationCorrected=0
+HorizontalDisplayPixelSize=0.000000000
+VerticalDisplayPixelSize=0.000000000
