@@ -253,19 +253,20 @@ def background_subtraction(data,background):  #Subtract the background
   back_ground = convert_imd(str(background))
   return data - back_ground
 
-def spark_plot(intensity,wavelengths,times,file=None):  #Plot the image in terms of pixels, hori and vert profile
+def spark_plot(intensity,wavelengths,times,file=None,y_before_first=False,time_unit="ms"):  #Plot the image in terms of pixels, hori and vert profile
   #Colour plot of whole image
-  try:
-    file = str(file)
-  except Exception:
+  file = str(file)
+  
+  if file == "None":
     file = ""
+  
   im_show = py.figure()
   py.imshow(intensity,interpolation="nearest",origin="lower")
   py.xlabel("x pixel")
   py.ylabel("y pixel")
   py.title(f"Color plot {file}")
   py.colorbar()
-  #py.show(block=False)
+  py.show(block=False)
 
 
   #Horizontal profile
@@ -281,11 +282,23 @@ def spark_plot(intensity,wavelengths,times,file=None):  #Plot the image in terms
   verticle = py.figure()
   vert = np.sum(intensity,axis=1)
   py.plot(times,vert)
-  py.xlabel("Time (ms)")
+  py.xlabel(f"Time ({time_unit})")
   py.ylabel("Intensity")
   py.title(f"Verticle profile {file}")
+  py.show(block=False)
   
-  #py.show(block=False)
+  y_start= 0
+  y_stop = 100
+  if y_before_first==True:
+    import scipy.signal as sg
+    peaks_y,_ = sg.find_peaks(vert)
+    widths,peaks,_,_ = sg.peak_widths(vert,peaks_y)
+  
+    max_width = max(widths)
+    max_middle_y = peaks_y[np.where(widths==max_width)]
+    y_start = int(np.trunc(max_middle_y-max_width))
+    y_stop = int(np.trunc(max_middle_y+max_width))
+
   
   if file!="":
     py.close("all")
@@ -294,7 +307,7 @@ def spark_plot(intensity,wavelengths,times,file=None):  #Plot the image in terms
     im_show.savefig(f"Batch_output/color_image - {file}.png")
     verticle.savefig(f"Batch_output/vertical - {file}.png")
 
-  return
+  return y_start,y_stop
 
 def auto_peaks(intensity,wavelengths,strict=True):  #Determine the peaks in data
   import scipy.signal as sg
@@ -344,10 +357,9 @@ def auto_analysis(intensity,observed):
   #copy out auto_plots part and put it here
   return 0
 
-def plot_3d(intensity,wavelengths,times,file=None):  #Plots wavelength v. intensity v. time
-  try:
-      file = str(file)
-  except Exception:
+def plot_3d(intensity,wavelengths,times,file=None,time_unit="ms"):  #Plots wavelength v. intensity v. time
+  file = str(file)
+  if file=="None":
     file = ""
     
   x_coords = wavelengths
@@ -358,7 +370,7 @@ def plot_3d(intensity,wavelengths,times,file=None):  #Plots wavelength v. intens
 
   ax.plot_surface(x_mesh,y_mesh,intensity,cmap="turbo")
   ax.set_xlabel("Wavelength (nm)")
-  ax.set_ylabel("Time (ms)")
+  ax.set_ylabel(f"Time ({time_unit})")
   ax.set_zlabel("Intensity")
   ax.set_title(f"3D plot {file}")
   py.show(block=False)
@@ -374,10 +386,10 @@ def integrated_line_image(intensity,wavelengths,file=None):  #Creates an time in
   import matplotlib as mpl
   import matplotlib.cm as cm
 
-  try:
-    file = str(file)
-  except Exception:
-    file = ""
+
+  file = str(file)
+  if file=="None":
+    file=""
     
   hori = np.sum(intensity,axis=0)
   integrated = py.figure()
@@ -422,12 +434,11 @@ def seperate_data_and_calibration(data_2d):          #seperate whole 2d array in
   calib_info = data_2d[0,0]
   return intensity,wavelengths,times,calib_info
 
-def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100,file=None): #Plot between start and stop y
+def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100,file=None,time_unit="ms"): #Plot between start and stop y
   from matplotlib import colors
-  try:
-    file = str(file)
-  except Exception:
-    file = ""
+  file = str(file)
+  if file=="None":
+    file=""
 
   x_coords = wavelengths
   y_coords = times[start_y:stop_y]
@@ -448,20 +459,20 @@ def wavelength_vs_time(intensity,wavelengths,times,start_y=0,stop_y=100,file=Non
     ax.plot(x_coords,current_time,current_intensity,color=current_color)
 
   ax.set_xlabel("Wavelength (nm)")
-  ax.set_ylabel("Time (μs)")
+  ax.set_ylabel(f"Time ({time_unit})")
   ax.set_zlabel("Intensity")
   ax.set_title(f"3D plot, intensity limit {inten_lim} {file}")
   py.show(block=False)
   
   if file!="":
-    threed_lines_plot.savefig(f"Batch_output/3D plot, intensity limit {inten_lim} - {file}.png")
+    threed_lines_plot.savefig(f"Batch_output/3D plot, intensity limit {inten_lim}, index {start_y} to {stop_y} - {file}.png")
   return(0)
 
-def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False,start_y=0,stop_y=100,file=None):
-  spark_plot(intensity,wavelengths,times,file)
+def all_plots(intensity,wavelengths,times,analysis=False,strict=True,NIST_check=False,file=None,time_unit="ms"):
+  start_y,stop_y = spark_plot(intensity,wavelengths,times,file,y_before_first=True,time_unit=time_unit)
   integrated_line_image(intensity,wavelengths,file)
-  plot_3d(intensity,wavelengths,times,file)
-  wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y,file)
+  plot_3d(intensity,wavelengths,times,file,time_unit)
+  wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y,file,time_unit)
 
   if analysis ==True:
     auto_values = auto_peaks(intensity,wavelengths,strict=strict)
@@ -528,11 +539,14 @@ def batch_process():
 print(batch_process())
 '''
 data = convert_imd( "potential 250nsmm.IMD")
-data_subd = background_subtraction(data,700,3)
-values = add_calibration(data,grating="3",center="700",speed=0)
+data_subd = background_subtraction(data,"C:\\Users\\alexf\\Downloads\\Pythons inside\\Find-A-Line\\20230810 Full sweep grating 3\\Sequence test 1\\center 700 Dark.imd")
+values = add_calibration(data,grating="3",center="700",timebase=100)
 intensity,wavelengths,times,calib_info = seperate_data_and_calibration(values)
 
-
+all_plots(intensity,wavelengths,times)
+input()
+start_y,stop_y = spark_plot(intensity,wavelengths,times,y_before_first=True)
+wavelength_vs_time(intensity,wavelengths,times,start_y,stop_y)
 sel_start = 250
 sel_end = 400
 times = np.arange(0,1041,1)
@@ -545,8 +559,8 @@ input()
 
 
 #input()
-'''
-'''
+
+
 lambdas = [453.0785,453.9695,510.5541,515.3235,521.8202,522.0070,529.2517]
 intens = np.array([800,800,1500,2000,1650,2500,1650])
 intens = intens / 2500
