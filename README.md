@@ -1,0 +1,1 @@
+This was code I created during my internship at Cardiff University's School of engineering. It focuses on processing the proprietiary file format of an Optronis streak camera as well as some data analysis and trouble shooting tools
